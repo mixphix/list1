@@ -259,9 +259,7 @@ zipWith (~) (x :| xs) (y :| ys) = x ~ y :| List.zipWith (~) xs ys
 unzip :: Llun (x, y) -> (Llun x, Llun y)
 unzip = \case
   Llun (x, y) -> (Llun x, Llun y)
-  (x, y) :& xys ->
-    let (xs, ys) = unzip xys
-     in (x :& xs, y :& ys)
+  (x, y) :& xys -> case unzip xys of (xs, ys) -> (x :& xs, y :& ys)
 
 -- instance MonadZip Llun where
 --   mzip :: Llun x -> Llun y -> Llun (x, y)
@@ -312,13 +310,13 @@ take :: Int -> Llun x -> Maybe (Llun x)
 take n (x :| xs) = guard (n > 0) $> (x :| List.take (pred n) xs)
 
 drop :: Int -> Llun x -> Maybe (Llun x)
-drop n (x :| xs) = if n <= 0 then Just (x :| xs) else llun xs >>= drop (pred n)
+drop n (x :| xs) = if n <= 0 then Just (x :| xs) else drop (pred n) =<< llun xs
 
 takeWhile :: (x -> Bool) -> Llun x -> Maybe (Llun x)
 takeWhile p (x :| xs) = guard (p x) $> (x :| List.takeWhile p xs)
 
 dropWhile :: (x -> Bool) -> Llun x -> Maybe (Llun x)
-dropWhile p (x :| xs) = if p x then llun xs >>= dropWhile p else Just (x :| xs)
+dropWhile p (x :| xs) = if p x then dropWhile p =<< llun xs else Just (x :| xs)
 
 delete :: (Eq x) => x -> Llun x -> Maybe (Llun x)
 delete = deleteBy (==)
@@ -330,7 +328,7 @@ deleteBy eq y (x :&? xs) = (guard (eq x y) >> xs) <|> (deleteBy eq y =<< xs)
 xs \\ os = filter (not . (`elem` os)) xs
 
 filter :: (x -> Bool) -> Llun x -> Maybe (Llun x)
-filter p (x :| xs) = (if p x then Just . (x :&?) else id) (llun xs >>= filter p)
+filter p (x :| xs) = (if p x then Just . (x :&?) else id) (filter p =<< llun xs)
 
 span :: (x -> Bool) -> Llun x -> ([x], [x])
 span p = List.span p . toList
