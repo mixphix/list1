@@ -1,0 +1,30 @@
+cabal-version:   3.4
+name:            llun
+version:         0.0.0
+license:         BSD-3-Clause
+license-file:    LICENSE
+author:          Melanie Phoenix
+maintainer:      brown.m@proton.me
+category:        Data
+build-type:      Simple
+extra-doc-files: CHANGELOG.md
+
+library
+  ghc-options:        -Wall
+  default-language:   GHC2021
+  default-extensions:
+    BlockArguments
+    DataKinds
+    DerivingStrategies
+    LambdaCase
+    MultiWayIf
+    OverloadedStrings
+    PatternSynonyms
+    QuasiQuotes
+    RecordWildCards
+    TypeFamilies
+    ViewPatterns
+
+  hs-source-dirs:     lib
+  exposed-modules:    Data.List.Llun
+  build-depends:      base
