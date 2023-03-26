@@ -273,9 +273,7 @@ unzip = \case
 
 -- instance MonadFix Llun where
 --   mfix :: (a -> Llun a) -> Llun a
---   mfix f =
---     fix (\(x :| _) -> f x) & \case
---       (x :| _) -> (x :|) . mfix $ (. f) \(_ :| xs) -> xs
+--   mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
 accuml :: (a -> x -> (a, y)) -> a -> Llun x -> (a, Llun y)
 accuml (@=) a0 (x :&? xs) = case a0 @= x of
