@@ -45,6 +45,8 @@ module Data.List.Llun (
   (!?),
   lookup,
   foldMap1,
+  mapMaybe,
+  catMaybes,
   zip,
   zipWith,
   unzip,
@@ -90,10 +92,12 @@ module Data.List.Llun (
   transpose,
   subsequences,
   permutations,
+  interleave,
   compareLength,
 ) where
 
 import Control.Applicative ((<|>))
+import Control.Arrow ((>>>))
 import Control.Monad (ap, guard, liftM2, (=<<), (>=>), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
@@ -105,11 +109,12 @@ import Data.Eq (Eq (..))
 -- import Data.Foldable1 (Foldable1 (..))
 import Data.Foldable qualified as Fold
 import Data.Function (flip, id, on, ($), (.))
-import Data.Functor (fmap, ($>), (<$>), (<&>), void)
+import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.Maybe (Maybe (..), fromJust, isJust, mapMaybe, maybe)
+import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
+import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable (for, sequence, traverse)
@@ -243,7 +248,7 @@ build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> Llun x
 build1 f = f (:&?) Nothing
 
 inits :: Llun x -> Llun (Llun x)
-inits = fromJust . llun . mapMaybe llun . List.tail . List.inits . toList
+inits = fromJust . llun . Maybe.mapMaybe llun . List.tail . List.inits . toList
 
 tails :: Llun x -> Llun (Llun x)
 tails xs = build1 \(.&?) end ->
@@ -304,6 +309,13 @@ scanr = fix \go f y -> \case
 
 scanr1 :: (x -> x -> x) -> Llun x -> Llun x
 scanr1 f (x :| xs) = scanr f x xs
+
+mapMaybe :: (x -> Maybe y) -> Llun x -> Maybe (Llun y)
+mapMaybe = fix \go f (x :&? xs) ->
+  maybe id ((Just .) . (:&?)) (f x) (go f =<< xs)
+
+catMaybes :: Llun (Maybe x) -> Maybe (Llun x)
+catMaybes = mapMaybe id
 
 take :: Int -> Llun x -> Maybe (Llun x)
 take n (x :| xs) = guard (n > 0) $> (x :| List.take (pred n) xs)
@@ -476,9 +488,20 @@ subsequences :: Llun x -> Llun (Llun x)
 subsequences (x :&? xss) =
   Llun x :&? (xss <&> (subsequences >=> \xs -> xs :& Llun (x :& xs)))
 
----- *
 permutations :: Llun x -> Llun (Llun x)
-permutations = fromJust . llun . mapMaybe llun . List.permutations . toList
+permutations = fix \go -> ap (:&?) \xs ->
+  let ts = (Just <$> tails xs) &: Nothing -- == llun <$> List.tails (toList xs)
+      hs = Nothing :& (Just <$> inits xs) -- == llun <$> List.inits (toList xs)
+      sub (y :| ys) = go >=> interleave y >>> fmap (<& ys)
+   in foldMap1 id <$> catMaybes (zipWith (liftM2 sub) ts hs)
+
+-- > interleave x (a : b : cs)
+-- >   == (x : a : b : cs)
+-- >    : (a : x : b : cs)
+-- >    : (a : b : x : cs) ...
+interleave :: x -> Llun x -> Llun (Llun x)
+interleave = fix \go x ly@(y :&? ys) ->
+  (x :& ly) :&? (fmap (y :&) . go x <$> ys)
 
 compareLength :: Llun x -> Llun y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
