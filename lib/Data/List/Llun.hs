@@ -246,9 +246,8 @@ inits :: Llun x -> Llun (Llun x)
 inits = fromJust . llun . mapMaybe llun . List.tail . List.inits . toList
 
 tails :: Llun x -> Llun (Llun x)
-tails xs = build1 \(<|) end -> ($ xs) $ fix \go -> \case
-  Llun x -> Llun x <| end
-  x :& y -> Llun x <| Just (go y)
+tails xs = build1 \(.&?) end ->
+  fix (\go (x :&? y) -> Llun x .&? maybe end (Just . go) y) xs
 
 zip :: Llun x -> Llun y -> Llun (x, y)
 zip = zipWith (,)
