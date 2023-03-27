@@ -98,7 +98,7 @@ module Data.List.Llun (
 
 import Control.Applicative ((<|>))
 import Control.Arrow ((>>>))
-import Control.Monad (ap, guard, liftM2, (=<<), (>=>), (>>), (>>=))
+import Control.Monad (ap, guard, join, liftM2, (=<<), (>=>), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
 -- import Control.Monad.Zip (MonadZip (..))
@@ -476,7 +476,7 @@ intersperse :: x -> Llun x -> Llun x
 intersperse y (x :&? xs) = x :&? fmap ((y :&) . intersperse y) xs
 
 intercalate :: Llun x -> Llun (Llun x) -> Llun x
-intercalate = (foldMap1 id .) . intersperse
+intercalate = (join .) . intersperse
 
 transpose :: Llun (Llun x) -> Llun (Llun x)
 transpose = \case
@@ -493,7 +493,7 @@ permutations = fix \go -> ap (:&?) \xs ->
   let ts = (Just <$> tails xs) &: Nothing -- == llun <$> List.tails (toList xs)
       hs = Nothing :& (Just <$> inits xs) -- == llun <$> List.inits (toList xs)
       sub (y :| ys) = go >=> interleave y >>> fmap (<& ys)
-   in foldMap1 id <$> catMaybes (zipWith (liftM2 sub) ts hs)
+   in join <$> catMaybes (zipWith (liftM2 sub) ts hs)
 
 -- > interleave x (a : b : cs)
 -- >   == (x : a : b : cs)
