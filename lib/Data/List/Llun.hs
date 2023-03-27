@@ -375,13 +375,13 @@ lookup :: Int -> Llun x -> Maybe x
 lookup = flip (!?)
 
 sort :: (Ord x) => Llun x -> Llun x
-sort (x :| xs) = fromJust $ llun (List.sort (x : xs))
+sort = fromJust . llun . List.sort . toList
 
 sortOn :: (Ord y) => (x -> y) -> Llun x -> Llun x
-sortOn f (x :| xs) = fromJust $ llun (List.sortOn f (x : xs))
+sortOn f = fromJust . llun . List.sortOn f . toList
 
 sortBy :: (x -> x -> Ordering) -> Llun x -> Llun x
-sortBy f (x :| xs) = fromJust $ llun (List.sortBy f (x : xs))
+sortBy f = fromJust . llun . List.sortBy f . toList
 
 group :: (Eq x) => Llun x -> Llun (Llun x)
 group = groupBy (==)
