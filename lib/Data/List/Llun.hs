@@ -105,7 +105,7 @@ import Data.Eq (Eq (..))
 -- import Data.Foldable1 (Foldable1 (..))
 import Data.Foldable qualified as Fold
 import Data.Function (flip, id, on, ($), (.))
-import Data.Functor (fmap, ($>), (<$>), (<&>))
+import Data.Functor (fmap, ($>), (<$>), (<&>), void)
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -481,8 +481,4 @@ permutations :: Llun x -> Llun (Llun x)
 permutations = fromJust . llun . mapMaybe llun . List.permutations . toList
 
 compareLength :: Llun x -> Llun y -> Ordering
-compareLength = \cases
-  (Llun _) (Llun _) -> EQ
-  (_ :& x) (_ :& y) -> compareLength x y
-  (Llun _) _ -> LT
-  _ (Llun _) -> GT
+compareLength xs ys = compare (void xs) (void ys)
