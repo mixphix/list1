@@ -92,7 +92,7 @@ module Data.List.Llun (
   transpose,
   subsequences,
   permutations,
-  interleave,
+  insertions,
   compareLength,
 ) where
 
@@ -490,17 +490,17 @@ subsequences (x :&? xss) =
 
 permutations :: Llun x -> Llun (Llun x)
 permutations = fix \go -> ap (:&?) \xs ->
-  let ts = (Just <$> tails xs) &: Nothing -- == llun <$> List.tails (toList xs)
-      is = Nothing :& (Just <$> inits xs) -- == llun <$> List.inits (toList xs)
-      sub (y :| ys) = go >=> interleave y >>> fmap (<& ys)
+  let ts = (Just <$> tails xs) &: Nothing -- List.tails (toList xs)
+      is = Nothing :& (Just <$> inits xs) -- List.inits (toList xs)
+      sub (y :| ys) = go >=> insertions y >>> fmap (<& ys)
    in join <$> catMaybes (zipWith (liftM2 sub) ts is)
 
--- > interleave x (a : b : cs)
+-- > insertions x (a : b : cs)
 -- >   == (x : a : b : cs)
 -- >    : (a : x : b : cs)
 -- >    : (a : b : x : cs) ...
-interleave :: x -> Llun x -> Llun (Llun x)
-interleave = fix \go x ly@(y :&? ys) ->
+insertions :: x -> Llun x -> Llun (Llun x)
+insertions = fix \go x ly@(y :&? ys) ->
   (x :& ly) :&? (fmap (y :&) . go x <$> ys)
 
 compareLength :: Llun x -> Llun y -> Ordering
