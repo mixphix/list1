@@ -258,7 +258,7 @@ zip :: Llun x -> Llun y -> Llun (x, y)
 zip = zipWith (,)
 
 zipWith :: (x -> y -> z) -> Llun x -> Llun y -> Llun z
-zipWith (~) (x :| xs) (y :| ys) = x ~ y :| List.zipWith (~) xs ys
+zipWith (+) (x :| xs) (y :| ys) = x + y :| List.zipWith (+) xs ys
 
 unzip :: Llun (x, y) -> (Llun x, Llun y)
 unzip = \case
@@ -274,17 +274,17 @@ unzip = \case
 --   munzip = unzip
 
 -- instance MonadFix Llun where
---   mfix :: (a -> Llun a) -> Llun a
+--   mfix :: (x -> Llun x) -> Llun x
 --   mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
 accuml :: (a -> x -> (a, y)) -> a -> Llun x -> (a, Llun y)
-accuml (@=) a0 (x :&? xs) = case a0 @= x of
-  (a, y) -> maybe (a, Llun y) (fmap (y :&) . accuml (@=) a) xs
+accuml (+) a0 (x :&? xs) = case a0 + x of
+  (a, y) -> maybe (a, Llun y) (fmap (y :&) . accuml (+) a) xs
 
 accumr :: (a -> x -> (a, y)) -> a -> Llun x -> (a, Llun y)
-accumr (@=) a0 = \case
-  Llun x -> Llun <$> (a0 @= x)
-  x :& xs -> case accumr (@=) a0 xs of (a, ys) -> (a @= x) <&> (:& ys)
+accumr (+) a0 = \case
+  Llun x -> Llun <$> (a0 + x)
+  x :& xs -> case accumr (+) a0 xs of (a, ys) -> (a + x) <&> (:& ys)
 
 scanl :: (y -> x -> y) -> y -> [x] -> Llun y
 scanl = fix \go f y -> \case
@@ -491,9 +491,9 @@ subsequences (x :&? xss) =
 permutations :: Llun x -> Llun (Llun x)
 permutations = fix \go -> ap (:&?) \xs ->
   let ts = (Just <$> tails xs) &: Nothing -- == llun <$> List.tails (toList xs)
-      hs = Nothing :& (Just <$> inits xs) -- == llun <$> List.inits (toList xs)
+      is = Nothing :& (Just <$> inits xs) -- == llun <$> List.inits (toList xs)
       sub (y :| ys) = go >=> interleave y >>> fmap (<& ys)
-   in join <$> catMaybes (zipWith (liftM2 sub) ts hs)
+   in join <$> catMaybes (zipWith (liftM2 sub) ts is)
 
 -- > interleave x (a : b : cs)
 -- >   == (x : a : b : cs)
