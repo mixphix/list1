@@ -99,7 +99,7 @@ module Data.List.Llun (
 ) where
 
 import Control.Applicative ((<*>), (<|>))
-import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>=>), (>>), (>>=))
+import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
 -- import Control.Monad.Zip (MonadZip (..))
@@ -483,11 +483,11 @@ transpose :: Llun (Llun x) -> Llun (Llun x)
 transpose = \case
   Llun x -> traverse Llun x
   (x :&? xs) :& xss -> case unzip (xss <&> \(h :&? t) -> (h, t)) of
-    (hs, ts) -> (x :& hs) :&? (transpose <$> liftM2 (:&) xs (sequence ts))
+    (hs, ts) -> (x :& hs) :&? maybe id ((fmap transpose .) . fmap . (:&)) xs (catMaybes ts)
 
 subsequences :: Llun x -> Llun (Llun x)
-subsequences (x :&? xss) =
-  Llun x :&? (xss <&> (subsequences >=> \xs -> xs :& Llun (x :& xs)))
+subsequences (x :&? xs) =
+  Llun x :&? fmap (ap (:&) (Llun . (x :&)) <=< subsequences) xs
 
 permutations :: Llun x -> Llun (Llun x)
 permutations = (:&?) <*> fmap join . diagonally \(t :| ts) -> fmap (<& ts) . insertions t <=< permutations
