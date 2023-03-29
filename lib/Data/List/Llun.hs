@@ -98,7 +98,7 @@ module Data.List.Llun (
   compareLength,
 ) where
 
-import Control.Applicative ((<*>), (<|>))
+import Control.Applicative ((<|>))
 import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
@@ -490,7 +490,9 @@ subsequences (x :&? xs) =
   Llun x :&? fmap (ap (:&) (Llun . (x :&)) <=< subsequences) xs
 
 permutations :: Llun x -> Llun (Llun x)
-permutations = (:&?) <*> fmap join . diagonally \(t :| ts) -> fmap (<& ts) . insertions t <=< permutations
+permutations xs =
+  (xs :&?) . fmap join $ flip diagonally xs \(t :| ts) hs ->
+    fmap (<& ts) . insertions t =<< permutations hs
 
 diagonally :: (Llun x -> Llun x -> y) -> Llun x -> Maybe (Llun y)
 diagonally f xs =
