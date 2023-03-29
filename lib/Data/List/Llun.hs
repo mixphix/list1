@@ -508,8 +508,7 @@ diagonals = diagonally (,)
 -- >    : (a : x : b : cs)
 -- >    : (a : b : x : cs) ...
 insertions :: x -> Llun x -> Llun (Llun x)
-insertions = fix \go x ly@(y :&? ys) ->
-  (x :& ly) :&? (fmap (y :&) . go x <$> ys)
+insertions x ly@(y :&? ys) = (x :& ly) :&? (fmap (y :&) . insertions x <$> ys)
 
 compareLength :: Llun x -> Llun y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
