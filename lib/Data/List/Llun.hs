@@ -118,7 +118,7 @@ import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
-import Data.Traversable (for, sequence, traverse)
+import Data.Traversable (for, traverse)
 -- import GHC.Generics (Generic, Generic1)
 -- import GHC.IsList qualified (IsList (..))
 -- import GHC.IsList qualified as GHC (IsList)
@@ -376,7 +376,7 @@ findIndex :: (x -> Bool) -> Llun x -> Maybe Int
 findIndex p = fmap head . findIndices p
 
 findIndices :: (x -> Bool) -> Llun x -> Maybe (Llun Int)
-findIndices p xs = sequence $ index xs <&> \(i, x) -> guard (p x) $> i
+findIndices p xs = catMaybes $ index xs <&> \(i, x) -> guard (p x) $> i
 
 (!?) :: Llun x -> Int -> Maybe x
 (x :&? xs) !? n
