@@ -96,9 +96,9 @@ module Data.List.Llun (
   compareLength,
 ) where
 
-import Control.Applicative ((<|>))
+import Control.Applicative ((<*>), (<|>))
 import Control.Arrow ((>>>))
-import Control.Monad (ap, guard, join, liftM2, (=<<), (>=>), (>>), (>>=))
+import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>=>), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
 -- import Control.Monad.Zip (MonadZip (..))
@@ -118,6 +118,7 @@ import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable (for, sequence, traverse)
+import Data.Tuple (uncurry)
 -- import GHC.Generics (Generic, Generic1)
 -- import GHC.IsList qualified (IsList (..))
 -- import GHC.IsList qualified as GHC (IsList)
@@ -489,11 +490,20 @@ subsequences (x :&? xss) =
   Llun x :&? (xss <&> (subsequences >=> \xs -> xs :& Llun (x :& xs)))
 
 permutations :: Llun x -> Llun (Llun x)
-permutations = fix \go -> ap (:&?) \xs ->
-  let ts = (Just <$> tails xs) &: Nothing -- List.tails (toList xs)
-      is = Nothing :& (Just <$> inits xs) -- List.inits (toList xs)
-      sub (y :| ys) = go >=> insertions y >>> fmap (<& ys)
-   in join <$> catMaybes (zipWith (liftM2 sub) ts is)
+permutations = fix \go ->
+  (:&?)
+    <*> fmap join . diagonally \(t :| ts) -> fmap (<& ts) . insertions t <=< go
+
+diagonally :: (Llun x -> Llun x -> y) -> Llun x -> Maybe (Llun y)
+diagonally f xs =
+  catMaybes $
+    zipWith
+      (liftM2 f)
+      ((Just <$> tails xs) &: Nothing)
+      (Nothing :& (Just <$> inits xs))
+
+diagonals :: Llun x -> Maybe (Llun (Llun x, Llun x))
+diagonals = diagonally (,)
 
 -- > insertions x (a : b : cs)
 -- >   == (x : a : b : cs)
