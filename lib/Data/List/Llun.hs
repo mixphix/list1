@@ -92,12 +92,13 @@ module Data.List.Llun (
   transpose,
   subsequences,
   permutations,
+  diagonally,
+  diagonals,
   insertions,
   compareLength,
 ) where
 
 import Control.Applicative ((<*>), (<|>))
-import Control.Arrow ((>>>))
 import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>=>), (>>), (>>=))
 import Control.Monad.Fix (fix)
 -- import Control.Monad.Fix (MonadFix (..), fix)
@@ -118,7 +119,6 @@ import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable (for, sequence, traverse)
-import Data.Tuple (uncurry)
 -- import GHC.Generics (Generic, Generic1)
 -- import GHC.IsList qualified (IsList (..))
 -- import GHC.IsList qualified as GHC (IsList)
@@ -490,9 +490,7 @@ subsequences (x :&? xss) =
   Llun x :&? (xss <&> (subsequences >=> \xs -> xs :& Llun (x :& xs)))
 
 permutations :: Llun x -> Llun (Llun x)
-permutations = fix \go ->
-  (:&?)
-    <*> fmap join . diagonally \(t :| ts) -> fmap (<& ts) . insertions t <=< go
+permutations = (:&?) <*> fmap join . diagonally \(t :| ts) -> fmap (<& ts) . insertions t <=< permutations
 
 diagonally :: (Llun x -> Llun x -> y) -> Llun x -> Maybe (Llun y)
 diagonally f xs =
