@@ -14,6 +14,7 @@ module Data.List.Llun (
   unLlun,
   onList,
   onLlun,
+  uncons,
   (++),
   reverse,
   head,
@@ -244,6 +245,9 @@ last :: Llun x -> x
 last = \case
   Llun x -> x
   _ :& xs -> last xs
+
+uncons :: Llun x -> (x, [x])
+uncons (x :| xs) = (x, xs)
 
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> Llun x
 build1 f = f (:&?) Nothing
