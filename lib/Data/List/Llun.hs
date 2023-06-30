@@ -150,7 +150,7 @@ pattern Llun :: x -> Llun x
 pattern Llun x = x :| []
 
 pattern (:&) :: x -> Llun x -> Llun x
-pattern x :& y <- (x :| ~(llun -> Just y))
+pattern x :& y <- (x :| (llun -> Just y))
   where
     x :& ~(y :| ys) = x :| (y : ys)
 
