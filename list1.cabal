@@ -1,6 +1,6 @@
 cabal-version:   3.4
-name:            llun
-version:         0.0.0
+name:            list1
+version:         0.0.1
 license:         BSD-3-Clause
 license-file:    LICENSE
 author:          Melanie Phoenix
@@ -26,5 +26,5 @@ library
     ViewPatterns
 
   hs-source-dirs:     lib
-  exposed-modules:    Data.List.Llun
+  exposed-modules:    Data.List1
   build-depends:      base

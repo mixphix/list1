@@ -1,19 +1,20 @@
-module Data.List.Llun (
-  -- Llun (..),
-  Llun,
+module Data.List1 (
+  -- List1 (..),
+  List1,
   NonEmpty ((:|)),
-  pattern Llun,
+  pattern Sole,
   pattern (:&),
   pattern (:&?),
   (<&),
   (&>),
   (|:),
   (&:),
-  llun,
+  list1,
   toList,
-  unLlun,
+  unList1,
   onList,
-  onLlun,
+  onList1,
+  withList1,
   uncons,
   (++),
   reverse,
@@ -129,9 +130,9 @@ infixr 5 {- :|, -} :&, :&?, |:, &:
 
 infixl 4 <&, &>
 
-type Llun = NonEmpty
+type List1 = NonEmpty
 
--- data Llun x = x :| [x]
+-- data List1 x = x :| [x]
 --   deriving
 --     ( Eq
 --     , Ord
@@ -146,359 +147,363 @@ type Llun = NonEmpty
 --     , Traversable
 --     )
 
-pattern Llun :: x -> Llun x
-pattern Llun x = x :| []
+pattern Sole :: x -> List1 x
+pattern Sole x = x :| []
 
-pattern (:&) :: x -> Llun x -> Llun x
-pattern x :& y <- (x :| (llun -> Just y))
+pattern (:&) :: x -> List1 x -> List1 x
+pattern x :& y <- (x :| (list1 -> Just y))
   where
     x :& ~(y :| ys) = x :| (y : ys)
 
-{-# COMPLETE Llun, (:&) #-}
+{-# COMPLETE Sole, (:&) #-}
 
-pattern (:&?) :: x -> Maybe (Llun x) -> Llun x
-pattern x :&? y <- (x :| ~(llun -> y))
+pattern (:&?) :: x -> Maybe (List1 x) -> List1 x
+pattern x :&? y <- (x :| ~(list1 -> y))
   where
-    x :&? y = maybe (Llun x) (x :&) y
+    x :&? y = maybe (Sole x) (x :&) y
 
 {-# COMPLETE (:&?) #-}
 
-(<&) :: Llun x -> [x] -> Llun x
+(<&) :: List1 x -> [x] -> List1 x
 x :| xs <& ys = x :| (xs <> ys)
 
-(&>) :: [x] -> Llun x -> Llun x
+(&>) :: [x] -> List1 x -> List1 x
 xs &> ys = case xs of
   [] -> ys
   x : zs -> x :& (zs &> ys)
 
-(|:) :: [x] -> x -> Llun x
-ys |: x = ys &> Llun x
+(|:) :: [x] -> x -> List1 x
+ys |: x = ys &> Sole x
 
-(&:) :: Llun x -> x -> Llun x
+(&:) :: List1 x -> x -> List1 x
 (y :| ys) &: x = y :| (ys <> [x])
 
-llun :: [x] -> Maybe (Llun x)
-llun = \case
+list1 :: [x] -> Maybe (List1 x)
+list1 = \case
   [] -> Nothing
   x : xs -> Just (x :| xs)
 
-toList :: Llun x -> [x]
+toList :: List1 x -> [x]
 toList (x :| xs) = x : xs
 
-unLlun :: Maybe (Llun x) -> [x]
-unLlun = maybe [] toList
+unList1 :: Maybe (List1 x) -> [x]
+unList1 = maybe [] toList
 
-onList :: (Llun x -> Llun x) -> [x] -> [x]
-onList f = maybe [] (toList . f) . llun
+onList :: (List1 x -> List1 x) -> [x] -> [x]
+onList f = maybe [] (toList . f) . list1
 
-onLlun :: (Llun x -> y) -> [x] -> Maybe y
-onLlun f = fmap f . llun
+onList1 :: (List1 x -> y) -> [x] -> Maybe y
+onList1 f = fmap f . list1
 
--- instance GHC.IsList (Llun x) where
---   type Item (Llun x) = x
+withList1 :: [x] -> y -> (List1 x -> y) -> y
+withList1 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
---   fromList :: [GHC.IsList.Item (Llun x)] -> Llun x
---   fromList = fromMaybe (error "Data.List.Llun.fromList []") . llun
+-- instance GHC.IsList (List1 x) where
+--   type Item (List1 x) = x
 
---   toList :: Llun x -> [GHC.IsList.Item (Llun x)]
+--   fromList :: [GHC.IsList.Item (List1 x)] -> List1 x
+--   fromList = fromMaybe (error "Data.List.List1.fromList []") . list1
+
+--   toList :: List1 x -> [GHC.IsList.Item (List1 x)]
 --   toList = toList
 
--- instance Semigroup (Llun x) where
---   (<>) :: Llun x -> Llun x -> Llun x
+-- instance Semigroup (List1 x) where
+--   (<>) :: List1 x -> List1 x -> List1 x
 --   (x :| xs) <> ys = x :| (xs <> Fold.toList ys)
 
-(++) :: Llun x -> Llun x -> Llun x
+(++) :: List1 x -> List1 x -> List1 x
 (++) = (<>)
 
-reverse :: Llun x -> Llun x
-reverse (x :| xs) = maybe (Llun x) ((&: x) . reverse) (llun xs)
+reverse :: List1 x -> List1 x
+reverse (x :| xs) = maybe (Sole x) ((&: x) . reverse) (list1 xs)
 
--- instance Foldable1 Llun where
-foldMap1 :: (Semigroup s) => (x -> s) -> Llun x -> s
+-- instance Foldable1 List1 where
+foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
 foldMap1 f = \case
-  Llun x -> f x
+  Sole x -> f x
   x :& y -> f x <> foldMap1 f y
 
--- instance Applicative Llun where
---   pure :: x -> Llun x
---   pure = Llun
+-- instance Applicative List1 where
+--   pure :: x -> List1 x
+--   pure = List1
 
---   (<*>) :: Llun (x -> y) -> Llun x -> Llun y
+--   (<*>) :: List1 (x -> y) -> List1 x -> List1 y
 --   (<*>) = ap
 
--- instance Monad Llun where
---   (>>=) :: Llun x -> (x -> Llun y) -> Llun y
+-- instance Monad List1 where
+--   (>>=) :: List1 x -> (x -> List1 y) -> List1 y
 --   (>>=) = flip foldMap1
 
-head :: Llun x -> x
+head :: List1 x -> x
 head (x :| _) = x
 
-tail :: Llun x -> [x]
+tail :: List1 x -> [x]
 tail (_ :| xs) = xs
 
-init :: Llun x -> [x]
+init :: List1 x -> [x]
 init = \case
-  Llun _ -> []
+  Sole _ -> []
   x :& xs -> x : init xs
 
-last :: Llun x -> x
+last :: List1 x -> x
 last = \case
-  Llun x -> x
+  Sole x -> x
   _ :& xs -> last xs
 
-uncons :: Llun x -> (x, [x])
+uncons :: List1 x -> (x, [x])
 uncons (x :| xs) = (x, xs)
 
-build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> Llun x
+build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
 build1 f = f (:&?) Nothing
 
-inits :: Llun x -> Llun (Llun x)
-inits = fromJust . llun . Maybe.mapMaybe llun . List.tail . List.inits . toList
+inits :: List1 x -> List1 (List1 x)
+inits = fromJust . list1 . Maybe.mapMaybe list1 . List.tail . List.inits . toList
 
-tails :: Llun x -> Llun (Llun x)
+tails :: List1 x -> List1 (List1 x)
 tails xs = build1 \(.&?) end ->
   fix (\go x@(_ :&? y) -> x .&? maybe end (Just . go) y) xs
 
-zip :: Llun x -> Llun y -> Llun (x, y)
+zip :: List1 x -> List1 y -> List1 (x, y)
 zip = zipWith (,)
 
-zipWith :: (x -> y -> z) -> Llun x -> Llun y -> Llun z
+zipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
 zipWith (+) (x :| xs) (y :| ys) = x + y :| List.zipWith (+) xs ys
 
-unzip :: Llun (x, y) -> (Llun x, Llun y)
+unzip :: List1 (x, y) -> (List1 x, List1 y)
 unzip = \case
-  Llun (x, y) -> (Llun x, Llun y)
+  Sole (x, y) -> (Sole x, Sole y)
   (x, y) :& xys -> case unzip xys of (xs, ys) -> (x :& xs, y :& ys)
 
--- instance MonadZip Llun where
---   mzip :: Llun x -> Llun y -> Llun (x, y)
+-- instance MonadZip List1 where
+--   mzip :: List1 x -> List1 y -> List1 (x, y)
 --   mzip = zip
---   mzipWith :: (x -> y -> z) -> Llun x -> Llun y -> Llun z
+--   mzipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
 --   mzipWith = zipWith
---   munzip :: Llun (x, y) -> (Llun x, Llun y)
+--   munzip :: List1 (x, y) -> (List1 x, List1 y)
 --   munzip = unzip
 
--- instance MonadFix Llun where
---   mfix :: (x -> Llun x) -> Llun x
+-- instance MonadFix List1 where
+--   mfix :: (x -> List1 x) -> List1 x
 --   mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
-accuml :: (a -> x -> (a, y)) -> a -> Llun x -> (a, Llun y)
+accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accuml (+) a0 (x :&? xs) = case a0 + x of
-  (a, y) -> maybe (a, Llun y) (fmap (y :&) . accuml (+) a) xs
+  (a, y) -> maybe (a, Sole y) (fmap (y :&) . accuml (+) a) xs
 
-accumr :: (a -> x -> (a, y)) -> a -> Llun x -> (a, Llun y)
+accumr :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accumr (+) a0 = \case
-  Llun x -> Llun <$> (a0 + x)
+  Sole x -> Sole <$> (a0 + x)
   x :& xs -> case accumr (+) a0 xs of (a, ys) -> (a + x) <&> (:& ys)
 
-scanl :: (y -> x -> y) -> y -> [x] -> Llun y
+scanl :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl = fix \go f y -> \case
-  [] -> Llun y
+  [] -> Sole y
   x : xs -> go f (f y x) xs
 
-scanl' :: (y -> x -> y) -> y -> [x] -> Llun y
+scanl' :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl' = fix \go f !y -> \case
-  [] -> Llun y
+  [] -> Sole y
   x : xs -> go f (f y x) xs
 
-scanl1 :: (x -> x -> x) -> Llun x -> Llun x
+scanl1 :: (x -> x -> x) -> List1 x -> List1 x
 scanl1 f (x :| xs) = scanl f x xs
 
-scanl1' :: (x -> x -> x) -> Llun x -> Llun x
+scanl1' :: (x -> x -> x) -> List1 x -> List1 x
 scanl1' f (x :| xs) = scanl' f x xs
 
-scanr :: (x -> y -> y) -> y -> [x] -> Llun y
+scanr :: (x -> y -> y) -> y -> [x] -> List1 y
 scanr = fix \go f y -> \case
-  [] -> Llun y
+  [] -> Sole y
   x : xs -> go f (f x y) xs
 
-scanr1 :: (x -> x -> x) -> Llun x -> Llun x
+scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
 
-mapMaybe :: (x -> Maybe y) -> Llun x -> Maybe (Llun y)
+mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
 mapMaybe = fix \go f (x :&? xs) ->
   maybe id ((Just .) . (:&?)) (f x) (go f =<< xs)
 
-catMaybes :: Llun (Maybe x) -> Maybe (Llun x)
+catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
 
-take :: Int -> Llun x -> Maybe (Llun x)
+take :: Int -> List1 x -> Maybe (List1 x)
 take n (x :| xs) = guard (n > 0) $> (x :| List.take (pred n) xs)
 
-drop :: Int -> Llun x -> Maybe (Llun x)
+drop :: Int -> List1 x -> Maybe (List1 x)
 drop n (x :&? xs) = if n <= 0 then Just (x :&? xs) else drop (pred n) =<< xs
 
-takeWhile :: (x -> Bool) -> Llun x -> Maybe (Llun x)
+takeWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 takeWhile p (x :&? xs) = guard (p x) >> (fmap (x :&) . takeWhile p =<< xs)
 
-dropWhile :: (x -> Bool) -> Llun x -> Maybe (Llun x)
+dropWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 dropWhile p (x :&? xs) = if p x then dropWhile p =<< xs else Just (x :&? xs)
 
-delete :: (Eq x) => x -> Llun x -> Maybe (Llun x)
+delete :: (Eq x) => x -> List1 x -> Maybe (List1 x)
 delete = deleteBy (==)
 
-deleteBy :: (x -> x -> Bool) -> x -> Llun x -> Maybe (Llun x)
+deleteBy :: (x -> x -> Bool) -> x -> List1 x -> Maybe (List1 x)
 deleteBy eq y (x :&? xs) = (guard (eq x y) >> xs) <|> (deleteBy eq y =<< xs)
 
-(\\) :: (Eq x) => Llun x -> Llun x -> Maybe (Llun x)
+(\\) :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 xs \\ os = filter (not . (`elem` os)) xs
 
-filter :: (x -> Bool) -> Llun x -> Maybe (Llun x)
+filter :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 filter p (x :&? xs) = (if p x then Just . (x :&?) else id) (filter p =<< xs)
 
-span :: (x -> Bool) -> Llun x -> ([x], [x])
+span :: (x -> Bool) -> List1 x -> ([x], [x])
 span p = List.span p . toList
 
-break :: (x -> Bool) -> Llun x -> ([x], [x])
+break :: (x -> Bool) -> List1 x -> ([x], [x])
 break p = List.break p . toList
 
-partition :: (x -> Bool) -> Llun x -> ([x], [x])
+partition :: (x -> Bool) -> List1 x -> ([x], [x])
 partition p = List.partition p . toList
 
-splitAt :: Int -> Llun x -> ([x], [x])
-splitAt n xs = (unLlun (take n xs), unLlun (drop n xs))
+splitAt :: Int -> List1 x -> ([x], [x])
+splitAt n xs = (unList1 (take n xs), unList1 (drop n xs))
 
-index :: (Integral n) => Llun x -> Llun (n, x)
+index :: (Integral n) => List1 x -> List1 (n, x)
 index = zip (iterated succ 0)
 
-notElem :: (Eq x) => x -> Llun x -> Bool
+notElem :: (Eq x) => x -> List1 x -> Bool
 notElem = (not .) . elem
 
-elem :: (Eq x) => x -> Llun x -> Bool
+elem :: (Eq x) => x -> List1 x -> Bool
 elem = (isJust .) . elemIndex
 
-elemIndex :: (Eq x) => x -> Llun x -> Maybe Int
+elemIndex :: (Eq x) => x -> List1 x -> Maybe Int
 elemIndex = findIndex . (==)
 
-elemIndices :: (Eq x) => x -> Llun x -> Maybe (Llun Int)
+elemIndices :: (Eq x) => x -> List1 x -> Maybe (List1 Int)
 elemIndices = findIndices . (==)
 
-find :: (x -> Bool) -> Llun x -> Maybe x
+find :: (x -> Bool) -> List1 x -> Maybe x
 find p = fmap head . filter p
 
-findIndex :: (x -> Bool) -> Llun x -> Maybe Int
+findIndex :: (x -> Bool) -> List1 x -> Maybe Int
 findIndex p = fmap head . findIndices p
 
-findIndices :: (x -> Bool) -> Llun x -> Maybe (Llun Int)
+findIndices :: (x -> Bool) -> List1 x -> Maybe (List1 Int)
 findIndices p xs = catMaybes $ index xs <&> \(i, x) -> guard (p x) $> i
 
-(!?) :: Llun x -> Int -> Maybe x
+(!?) :: List1 x -> Int -> Maybe x
 (x :&? xs) !? n
   | n < 0 = Nothing
   | n == 0 = Just x
   | otherwise = xs >>= (!? pred n)
 
-lookup :: Int -> Llun x -> Maybe x
+lookup :: Int -> List1 x -> Maybe x
 lookup = flip (!?)
 
-sort :: (Ord x) => Llun x -> Llun x
-sort = fromJust . llun . List.sort . toList
+sort :: (Ord x) => List1 x -> List1 x
+sort = fromJust . list1 . List.sort . toList
 
-sortOn :: (Ord y) => (x -> y) -> Llun x -> Llun x
-sortOn f = fromJust . llun . List.sortOn f . toList
+sortOn :: (Ord y) => (x -> y) -> List1 x -> List1 x
+sortOn f = fromJust . list1 . List.sortOn f . toList
 
-sortBy :: (x -> x -> Ordering) -> Llun x -> Llun x
-sortBy f = fromJust . llun . List.sortBy f . toList
+sortBy :: (x -> x -> Ordering) -> List1 x -> List1 x
+sortBy f = fromJust . list1 . List.sortBy f . toList
 
-group :: (Eq x) => Llun x -> Llun (Llun x)
+group :: (Eq x) => List1 x -> List1 (List1 x)
 group = groupBy (==)
 
-groupOn :: (Eq y) => (x -> y) -> Llun x -> Llun (Llun x)
+groupOn :: (Eq y) => (x -> y) -> List1 x -> List1 (List1 x)
 groupOn f = groupBy (on (==) f)
 
-groupBy :: (x -> x -> Bool) -> Llun x -> Llun (Llun x)
+groupBy :: (x -> x -> Bool) -> List1 x -> List1 (List1 x)
 groupBy eq (x :| lx) = case List.span (eq x) lx of
-  (xs, ys) -> (x :| xs) :&? onLlun (groupBy eq) ys
+  (xs, ys) -> (x :| xs) :&? onList1 (groupBy eq) ys
 
-intersect :: (Eq x) => Llun x -> Llun x -> Maybe (Llun x)
+intersect :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 intersect = intersectBy (==)
 
-intersectOn :: (Eq y) => (x -> y) -> Llun x -> Llun x -> Maybe (Llun x)
+intersectOn :: (Eq y) => (x -> y) -> List1 x -> List1 x -> Maybe (List1 x)
 intersectOn f = intersectBy (on (==) f)
 
-intersectBy :: (x -> y -> Bool) -> Llun x -> Llun y -> Maybe (Llun x)
+intersectBy :: (x -> y -> Bool) -> List1 x -> List1 y -> Maybe (List1 x)
 intersectBy eq xs ys = for xs \x -> guard (Fold.any (eq x) ys) $> x
 
-union :: (Eq x) => Llun x -> Llun x -> Llun x
+union :: (Eq x) => List1 x -> List1 x -> List1 x
 union = unionBy (==)
 
-unionOn :: (Eq y) => (x -> y) -> Llun x -> Llun x -> Llun x
+unionOn :: (Eq y) => (x -> y) -> List1 x -> List1 x -> List1 x
 unionOn f = unionBy (on (==) f)
 
-unionBy :: (x -> x -> Bool) -> Llun x -> Llun x -> Llun x
+unionBy :: (x -> x -> Bool) -> List1 x -> List1 x -> List1 x
 unionBy eq xs ys =
   xs <> Fold.foldr ((fromJust .) . deleteBy eq) (nubBy eq ys) (toList xs)
 
-nub :: (Eq x) => Llun x -> Llun x
+nub :: (Eq x) => List1 x -> List1 x
 nub = nubBy (==)
 
-nubOn :: (Eq y) => (x -> y) -> Llun x -> Llun x
+nubOn :: (Eq y) => (x -> y) -> List1 x -> List1 x
 nubOn f = nubBy (on (==) f)
 
-nubBy :: (x -> x -> Bool) -> Llun x -> Llun x
+nubBy :: (x -> x -> Bool) -> List1 x -> List1 x
 nubBy eq (x :| xs) = x :| List.nubBy eq (List.filter (not . eq x) xs)
 
-maximum :: (Ord x) => Llun x -> x
+maximum :: (Ord x) => List1 x -> x
 maximum = Fold.maximum
 
-maximumOf :: (Ord y) => (x -> y) -> Llun x -> y
+maximumOf :: (Ord y) => (x -> y) -> List1 x -> y
 maximumOf f = maximum . fmap f
 
-maximumOn :: (Ord x, Ord y) => (x -> y) -> Llun x -> x
+maximumOn :: (Ord x, Ord y) => (x -> y) -> List1 x -> x
 maximumOn f = maximumBy (comparing f)
 
-maximumBy :: (x -> x -> Ordering) -> Llun x -> x
+maximumBy :: (x -> x -> Ordering) -> List1 x -> x
 maximumBy = Fold.maximumBy
 
-minimum :: (Ord x) => Llun x -> x
+minimum :: (Ord x) => List1 x -> x
 minimum = Fold.minimum
 
-minimumOf :: (Ord y) => (x -> y) -> Llun x -> y
+minimumOf :: (Ord y) => (x -> y) -> List1 x -> y
 minimumOf f = minimum . fmap f
 
-minimumOn :: (Ord x, Ord y) => (x -> y) -> Llun x -> x
+minimumOn :: (Ord x, Ord y) => (x -> y) -> List1 x -> x
 minimumOn f = minimumBy (comparing f)
 
-minimumBy :: (x -> x -> Ordering) -> Llun x -> x
+minimumBy :: (x -> x -> Ordering) -> List1 x -> x
 minimumBy = Fold.minimumBy
 
-iterate :: (x -> x) -> x -> Llun x
+iterate :: (x -> x) -> x -> List1 x
 iterate f x = x :& iterate f (f x)
 
-iterated :: (x -> x) -> x -> Llun x
+iterated :: (x -> x) -> x -> List1 x
 iterated f !x = x :& iterated f (f x)
 
-repeat :: x -> Llun x
+repeat :: x -> List1 x
 repeat = fix (ap (:&))
 
-replicate :: Int -> x -> Maybe (Llun x)
+replicate :: Int -> x -> Maybe (List1 x)
 replicate n x = take n (repeat x)
 
-cycle :: Llun x -> Llun x
+cycle :: List1 x -> List1 x
 cycle = fix (ap (<>))
 
-intersperse :: x -> Llun x -> Llun x
+intersperse :: x -> List1 x -> List1 x
 intersperse y (x :&? xs) = x :&? fmap ((y :&) . intersperse y) xs
 
-intercalate :: Llun x -> Llun (Llun x) -> Llun x
+intercalate :: List1 x -> List1 (List1 x) -> List1 x
 intercalate = (join .) . intersperse
 
-transpose :: Llun (Llun x) -> Llun (Llun x)
+transpose :: List1 (List1 x) -> List1 (List1 x)
 transpose = \case
-  Llun x -> traverse Llun x
+  Sole x -> traverse Sole x
   (x :&? xs) :& xss -> case unzip (xss <&> \(h :&? t) -> (h, t)) of
-    (hs, ts) -> (x :& hs) :&? maybe id ((fmap transpose .) . fmap . (:&)) xs (catMaybes ts)
+    (hs, ts) ->
+      (x :& hs) :&? maybe id (fmap . (transpose .) . (:&)) xs (catMaybes ts)
 
-subsequences :: Llun x -> Llun (Llun x)
+subsequences :: List1 x -> List1 (List1 x)
 subsequences (x :&? xs) =
-  Llun x :&? fmap (ap (:&) (Llun . (x :&)) <=< subsequences) xs
+  Sole x :&? fmap (ap (:&) (Sole . (x :&)) <=< subsequences) xs
 
-permutations :: Llun x -> Llun (Llun x)
+permutations :: List1 x -> List1 (List1 x)
 permutations xs =
   (xs :&?) . fmap join $ flip diagonally xs \(t :| ts) hs ->
     fmap (<& ts) . insertions t =<< permutations hs
 
-diagonally :: (Llun x -> Llun x -> y) -> Llun x -> Maybe (Llun y)
+diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
 diagonally f xs =
   catMaybes $
     zipWith
@@ -506,15 +511,15 @@ diagonally f xs =
       ((Just <$> tails xs) &: Nothing)
       (Nothing :& (Just <$> inits xs))
 
-diagonals :: Llun x -> Maybe (Llun (Llun x, Llun x))
+diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
 diagonals = diagonally (,)
 
 -- > insertions x (a : b : cs)
 -- >   == (x : a : b : cs)
 -- >    : (a : x : b : cs)
 -- >    : (a : b : x : cs) ...
-insertions :: x -> Llun x -> Llun (Llun x)
+insertions :: x -> List1 x -> List1 (List1 x)
 insertions x ly@(y :&? ys) = (x :& ly) :&? (fmap (y :&) . insertions x <$> ys)
 
-compareLength :: Llun x -> Llun y -> Ordering
+compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
