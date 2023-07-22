@@ -60,6 +60,7 @@ module Data.List1 (
   scanl1',
   scanr,
   scanr1,
+  unfoldr,
   build1,
   sort,
   sortOn,
@@ -115,7 +116,7 @@ import Data.Function (flip, id, on, ($), (.))
 import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
-import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.List.NonEmpty (NonEmpty ((:|)), unfoldr)
 import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
