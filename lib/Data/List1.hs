@@ -148,9 +148,11 @@ type List1 = NonEmpty
 --     , Traversable
 --     )
 
+-- | Match a singleton 'List1'.
 pattern Sole :: x -> List1 x
 pattern Sole x = x :| []
 
+-- | Match a 'List1' of length at least 2.
 pattern (:&) :: x -> List1 x -> List1 x
 pattern x :& y <- (x :| (list1 -> Just y))
   where
@@ -158,6 +160,7 @@ pattern x :& y <- (x :| (list1 -> Just y))
 
 {-# COMPLETE Sole, (:&) #-}
 
+-- | Isomorphic to '(:|)', but instead with a 'Maybe' 'List1'.
 pattern (:&?) :: x -> Maybe (List1 x) -> List1 x
 pattern x :&? y <- (x :| ~(list1 -> y))
   where
@@ -165,37 +168,49 @@ pattern x :&? y <- (x :| ~(list1 -> y))
 
 {-# COMPLETE (:&?) #-}
 
+-- | Prepend a 'List1' to a list.
 (<&) :: List1 x -> [x] -> List1 x
 x :| xs <& ys = x :| (xs <> ys)
 
+-- | Append a 'List1' to a list.
 (&>) :: [x] -> List1 x -> List1 x
 xs &> ys = case xs of
   [] -> ys
   x : zs -> x :& (zs &> ys)
 
+-- | Append an element to a list. C.f. '(:|)'.
 (|:) :: [x] -> x -> List1 x
 ys |: x = ys &> Sole x
 
+-- | Append an element to a 'List1'. C.f. '(:&)'.
 (&:) :: List1 x -> x -> List1 x
 (y :| ys) &: x = y :| (ys <> [x])
 
+-- | Together with 'unList1', witness the isomorphism @[x] ~ Maybe (List1 x)@.
 list1 :: [x] -> Maybe (List1 x)
 list1 = \case
   [] -> Nothing
   x : xs -> Just (x :| xs)
 
+-- | Forget the nonemptiness information.
 toList :: List1 x -> [x]
 toList (x :| xs) = x : xs
 
+-- | Together with 'list1', witness the isomorphism @[x] ~ Maybe (List1 x)@.
 unList1 :: Maybe (List1 x) -> [x]
 unList1 = maybe [] toList
 
+-- | Apply a 'List1' endomorphism to a regular list.
 onList :: (List1 x -> List1 x) -> [x] -> [x]
 onList f = maybe [] (toList . f) . list1
 
+-- | Check nonemptiness and apply a 'List1' function in the same step.
 onList1 :: (List1 x -> y) -> [x] -> Maybe y
 onList1 f = fmap f . list1
 
+-- |
+-- Case split on a list with a default value and a 'List1' function.
+-- Flipped variant of what some call @withNonEmpty@ or @withNotNull@.
 withList1 :: [x] -> y -> (List1 x -> y) -> y
 withList1 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
@@ -212,11 +227,13 @@ withList1 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 --   (<>) :: List1 x -> List1 x -> List1 x
 --   (x :| xs) <> ys = x :| (xs <> Fold.toList ys)
 
+-- | Type-restricted concatenation.
 (++) :: List1 x -> List1 x -> List1 x
 (++) = (<>)
 
+-- | 'List1' the elements backwards.
 reverse :: List1 x -> List1 x
-reverse (x :| xs) = maybe (Sole x) ((&: x) . reverse) (list1 xs)
+reverse (x :| xs) = withList1 xs (Sole x) ((&: x) . reverse)
 
 -- instance Foldable1 List1 where
 foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
@@ -235,41 +252,52 @@ foldMap1 f = \case
 --   (>>=) :: List1 x -> (x -> List1 y) -> List1 y
 --   (>>=) = flip foldMap1
 
+-- | Extract the first element of a 'List1'.
 head :: List1 x -> x
 head (x :| _) = x
 
+-- | Extract all but the first element of a 'List1'.
 tail :: List1 x -> [x]
 tail (_ :| xs) = xs
 
+-- | Extract all but the last element of a 'List1'.
 init :: List1 x -> [x]
 init = \case
   Sole _ -> []
   x :& xs -> x : init xs
 
+-- | Extract the last element of a 'List1'.
 last :: List1 x -> x
 last = \case
   Sole x -> x
   _ :& xs -> last xs
 
+-- | Convenience function for decomposing 'List1' into its 'head' and 'tail'.
 uncons :: List1 x -> (x, [x])
 uncons (x :| xs) = (x, xs)
 
+-- | The analogue of 'build' for regular lists.
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
 build1 f = f (:&?) Nothing
 
+-- | The sequence of prefixes of a 'List1', from longest to shortest.
 inits :: List1 x -> List1 (List1 x)
 inits = fromJust . list1 . Maybe.mapMaybe list1 . List.tail . List.inits . toList
 
+-- | The sequence of suffixes of a 'List1', from longest to shortest.
 tails :: List1 x -> List1 (List1 x)
 tails xs = build1 \(.&?) end ->
   fix (\go x@(_ :&? y) -> x .&? maybe end (Just . go) y) xs
 
+-- | Pointwise product of two 'List1's.
 zip :: List1 x -> List1 y -> List1 (x, y)
 zip = zipWith (,)
 
+-- | Pointwise application of two 'List1's.
 zipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
 zipWith (+) (x :| xs) (y :| ys) = x + y :| List.zipWith (+) xs ys
 
+-- | Decompose a 'List1' of pairs into a pair of 'List1's.
 unzip :: List1 (x, y) -> (List1 x, List1 y)
 unzip = \case
   Sole (x, y) -> (Sole x, Sole y)
