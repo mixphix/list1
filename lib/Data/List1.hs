@@ -413,7 +413,7 @@ findIndex :: (x -> Bool) -> List1 x -> Maybe Int
 findIndex p = fmap head . findIndices p
 
 findIndices :: (x -> Bool) -> List1 x -> Maybe (List1 Int)
-findIndices p xs = catMaybes $ index xs <&> \(i, x) -> guard (p x) $> i
+findIndices p xs = flip mapMaybe (index xs) \(i, x) -> guard (p x) $> i
 
 (!?) :: List1 x -> Int -> Maybe x
 (x :&? xs) !? n
