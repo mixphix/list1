@@ -14,7 +14,7 @@ module Data.List1 (
   unList1,
   onList,
   onList1,
-  withList1,
+  nE,
   uncons,
   (++),
   reverse,
@@ -117,14 +117,16 @@ import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)), unfoldr)
+import Data.List.NonEmpty qualified as NE (transpose)
 import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
-import Data.Traversable (for, traverse)
+import Data.Traversable (for)
 -- import GHC.Generics (Generic, Generic1)
 -- import GHC.IsList qualified (IsList (..))
 -- import GHC.IsList qualified as GHC (IsList)
+import GHC.Err (error)
 import Prelude (Enum (..), Integral)
 
 infixr 5 {- :|, -} :&, :&?, |:, &:
@@ -211,8 +213,8 @@ onList1 f = fmap f . list1
 -- |
 -- Case split on a list with a default value and a 'List1' function.
 -- Flipped variant of what some call @withNonEmpty@ or @withNotNull@.
-withList1 :: [x] -> y -> (List1 x -> y) -> y
-withList1 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
+nE :: [x] -> y -> (List1 x -> y) -> y
+nE lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
 -- instance GHC.IsList (List1 x) where
 --   type Item (List1 x) = x
@@ -233,7 +235,7 @@ withList1 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
 -- | 'List1' the elements backwards.
 reverse :: List1 x -> List1 x
-reverse (x :| xs) = withList1 xs (Sole x) ((&: x) . reverse)
+reverse (x :| xs) = nE xs (Sole x) ((&: x) . reverse)
 
 -- instance Foldable1 List1 where
 foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
@@ -504,8 +506,11 @@ iterated f !x = x :& iterated f (f x)
 repeat :: x -> List1 x
 repeat = fix (ap (:&))
 
-replicate :: Int -> x -> Maybe (List1 x)
-replicate n x = take n (repeat x)
+replicate :: Int -> x -> List1 x
+replicate n x = case n of
+  _ | n <= 0 -> error "Data.List1.replicate: argument must be positive"
+  1 -> Sole x
+  _ -> x :& replicate (pred n) x
 
 cycle :: List1 x -> List1 x
 cycle = fix (ap (<>))
@@ -517,11 +522,7 @@ intercalate :: List1 x -> List1 (List1 x) -> List1 x
 intercalate = (join .) . intersperse
 
 transpose :: List1 (List1 x) -> List1 (List1 x)
-transpose = \case
-  Sole x -> traverse Sole x
-  (x :&? xs) :& xss -> case unzip (xss <&> \(h :&? t) -> (h, t)) of
-    (hs, ts) ->
-      (x :& hs) :&? maybe id (fmap . (transpose .) . (:&)) xs (catMaybes ts)
+transpose = NE.transpose
 
 subsequences :: List1 x -> List1 (List1 x)
 subsequences (x :&? xs) =
@@ -534,8 +535,8 @@ permutations xs =
 
 diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
 diagonally f xs =
-  catMaybes $
-    zipWith
+  catMaybes
+    $ zipWith
       (liftM2 f)
       ((Just <$> tails xs) &: Nothing)
       (Nothing :& (Just <$> inits xs))
