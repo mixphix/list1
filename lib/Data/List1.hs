@@ -284,7 +284,7 @@ build1 f = f (:&?) Nothing
 
 -- | The sequence of prefixes of a 'List1', from longest to shortest.
 inits :: List1 x -> List1 (List1 x)
-inits = fromJust . list1 . Maybe.mapMaybe list1 . List.tail . List.inits . toList
+inits = fromJust . list1 . Maybe.mapMaybe list1 . List.drop 1 . List.inits . toList
 
 -- | The sequence of suffixes of a 'List1', from longest to shortest.
 tails :: List1 x -> List1 (List1 x)
