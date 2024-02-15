@@ -3,8 +3,8 @@ module Data.List1 (
   List1,
   NonEmpty ((:|)),
   pattern Sole,
-  pattern (:&),
-  pattern (:&?),
+  pattern (:||),
+  pattern (:?),
   (<&),
   (&>),
   (|:),
@@ -129,7 +129,7 @@ import Data.Traversable (for)
 import GHC.Err (error)
 import Prelude (Enum (..), Integral)
 
-infixr 5 {- :|, -} :&, :&?, |:, &:
+infixr 5 {- :|, -} :||, :?, |:, &:
 
 infixl 4 <&, &>
 
@@ -155,20 +155,20 @@ pattern Sole :: x -> List1 x
 pattern Sole x = x :| []
 
 -- | Match a 'List1' of length at least 2.
-pattern (:&) :: x -> List1 x -> List1 x
-pattern x :& y <- (x :| (list1 -> Just y))
+pattern (:||) :: x -> List1 x -> List1 x
+pattern x :|| y <- (x :| (list1 -> Just y))
   where
-    x :& ~(y :| ys) = x :| (y : ys)
+    x :|| ~(y :| ys) = x :| (y : ys)
 
-{-# COMPLETE Sole, (:&) #-}
+{-# COMPLETE Sole, (:||) #-}
 
 -- | Isomorphic to '(:|)', but instead with a 'Maybe' 'List1'.
-pattern (:&?) :: x -> Maybe (List1 x) -> List1 x
-pattern x :&? y <- (x :| ~(list1 -> y))
+pattern (:?) :: x -> Maybe (List1 x) -> List1 x
+pattern x :? y <- (x :| ~(list1 -> y))
   where
-    x :&? y = maybe (Sole x) (x :&) y
+    x :? y = maybe (Sole x) (x :||) y
 
-{-# COMPLETE (:&?) #-}
+{-# COMPLETE (:?) #-}
 
 -- | Prepend a 'List1' to a list.
 (<&) :: List1 x -> [x] -> List1 x
@@ -178,13 +178,13 @@ x :| xs <& ys = x :| (xs <> ys)
 (&>) :: [x] -> List1 x -> List1 x
 xs &> ys = case xs of
   [] -> ys
-  x : zs -> x :& (zs &> ys)
+  x : zs -> x :|| (zs &> ys)
 
 -- | Append an element to a list. C.f. '(:|)'.
 (|:) :: [x] -> x -> List1 x
 ys |: x = ys &> Sole x
 
--- | Append an element to a 'List1'. C.f. '(:&)'.
+-- | Append an element to a 'List1'. C.f. '(:||)'.
 (&:) :: List1 x -> x -> List1 x
 (y :| ys) &: x = y :| (ys <> [x])
 
@@ -241,7 +241,7 @@ reverse (x :| xs) = nE xs (Sole x) ((&: x) . reverse)
 foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
 foldMap1 f = \case
   Sole x -> f x
-  x :& y -> f x <> foldMap1 f y
+  x :|| y -> f x <> foldMap1 f y
 
 -- instance Applicative List1 where
 --   pure :: x -> List1 x
@@ -266,13 +266,13 @@ tail (_ :| xs) = xs
 init :: List1 x -> [x]
 init = \case
   Sole _ -> []
-  x :& xs -> x : init xs
+  x :|| xs -> x : init xs
 
 -- | Extract the last element of a 'List1'.
 last :: List1 x -> x
 last = \case
   Sole x -> x
-  _ :& xs -> last xs
+  _ :|| xs -> last xs
 
 -- | Convenience function for decomposing 'List1' into its 'head' and 'tail'.
 uncons :: List1 x -> (x, [x])
@@ -280,7 +280,7 @@ uncons (x :| xs) = (x, xs)
 
 -- | The analogue of 'build' for regular lists.
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
-build1 f = f (:&?) Nothing
+build1 f = f (:?) Nothing
 
 -- | The sequence of prefixes of a 'List1', from longest to shortest.
 inits :: List1 x -> List1 (List1 x)
@@ -289,7 +289,7 @@ inits = fromJust . list1 . Maybe.mapMaybe list1 . List.drop 1 . List.inits . toL
 -- | The sequence of suffixes of a 'List1', from longest to shortest.
 tails :: List1 x -> List1 (List1 x)
 tails xs = build1 \(.&?) end ->
-  fix (\go x@(_ :&? y) -> x .&? maybe end (Just . go) y) xs
+  fix (\go x@(_ :? y) -> x .&? maybe end (Just . go) y) xs
 
 -- | Pointwise product of two 'List1's.
 zip :: List1 x -> List1 y -> List1 (x, y)
@@ -303,7 +303,7 @@ zipWith (+) (x :| xs) (y :| ys) = x + y :| List.zipWith (+) xs ys
 unzip :: List1 (x, y) -> (List1 x, List1 y)
 unzip = \case
   Sole (x, y) -> (Sole x, Sole y)
-  (x, y) :& xys -> case unzip xys of (xs, ys) -> (x :& xs, y :& ys)
+  (x, y) :|| xys -> case unzip xys of (xs, ys) -> (x :|| xs, y :|| ys)
 
 -- instance MonadZip List1 where
 --   mzip :: List1 x -> List1 y -> List1 (x, y)
@@ -318,13 +318,13 @@ unzip = \case
 --   mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
 accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
-accuml (+) a0 (x :&? xs) = case a0 + x of
-  (a, y) -> maybe (a, Sole y) (fmap (y :&) . accuml (+) a) xs
+accuml (+) a0 (x :? xs) = case a0 + x of
+  (a, y) -> maybe (a, Sole y) (fmap (y :||) . accuml (+) a) xs
 
 accumr :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accumr (+) a0 = \case
   Sole x -> Sole <$> (a0 + x)
-  x :& xs -> case accumr (+) a0 xs of (a, ys) -> (a + x) <&> (:& ys)
+  x :|| xs -> case accumr (+) a0 xs of (a, ys) -> (a + x) <&> (:|| ys)
 
 scanl :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl = fix \go f y -> \case
@@ -351,8 +351,8 @@ scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
 
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
-mapMaybe = fix \go f (x :&? xs) ->
-  maybe id ((Just .) . (:&?)) (f x) (go f =<< xs)
+mapMaybe = fix \go f (x :? xs) ->
+  maybe id ((Just .) . (:?)) (f x) (go f =<< xs)
 
 catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
@@ -361,25 +361,25 @@ take :: Int -> List1 x -> Maybe (List1 x)
 take n (x :| xs) = guard (n > 0) $> (x :| List.take (pred n) xs)
 
 drop :: Int -> List1 x -> Maybe (List1 x)
-drop n (x :&? xs) = if n <= 0 then Just (x :&? xs) else drop (pred n) =<< xs
+drop n (x :? xs) = if n <= 0 then Just (x :? xs) else drop (pred n) =<< xs
 
 takeWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
-takeWhile p (x :&? xs) = guard (p x) >> (fmap (x :&) . takeWhile p =<< xs)
+takeWhile p (x :? xs) = guard (p x) >> (fmap (x :||) . takeWhile p =<< xs)
 
 dropWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
-dropWhile p (x :&? xs) = if p x then dropWhile p =<< xs else Just (x :&? xs)
+dropWhile p (x :? xs) = if p x then dropWhile p =<< xs else Just (x :? xs)
 
 delete :: (Eq x) => x -> List1 x -> Maybe (List1 x)
 delete = deleteBy (==)
 
 deleteBy :: (x -> x -> Bool) -> x -> List1 x -> Maybe (List1 x)
-deleteBy eq y (x :&? xs) = (guard (eq x y) >> xs) <|> (deleteBy eq y =<< xs)
+deleteBy eq y (x :? xs) = (guard (eq x y) >> xs) <|> (deleteBy eq y =<< xs)
 
 (\\) :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 xs \\ os = filter (not . (`elem` os)) xs
 
 filter :: (x -> Bool) -> List1 x -> Maybe (List1 x)
-filter p (x :&? xs) = (if p x then Just . (x :&?) else id) (filter p =<< xs)
+filter p (x :? xs) = (if p x then Just . (x :?) else id) (filter p =<< xs)
 
 span :: (x -> Bool) -> List1 x -> ([x], [x])
 span p = List.span p . toList
@@ -418,7 +418,7 @@ findIndices :: (x -> Bool) -> List1 x -> Maybe (List1 Int)
 findIndices p xs = flip mapMaybe (index xs) \(i, x) -> guard (p x) $> i
 
 (!?) :: List1 x -> Int -> Maybe x
-(x :&? xs) !? n
+(x :? xs) !? n
   | n < 0 = Nothing
   | n == 0 = Just x
   | otherwise = xs >>= (!? pred n)
@@ -443,7 +443,7 @@ groupOn f = groupBy (on (==) f)
 
 groupBy :: (x -> x -> Bool) -> List1 x -> List1 (List1 x)
 groupBy eq (x :| lx) = case List.span (eq x) lx of
-  (xs, ys) -> (x :| xs) :&? onList1 (groupBy eq) ys
+  (xs, ys) -> (x :| xs) :? onList1 (groupBy eq) ys
 
 intersect :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 intersect = intersectBy (==)
@@ -498,25 +498,25 @@ minimumBy :: (x -> x -> Ordering) -> List1 x -> x
 minimumBy = Fold.minimumBy
 
 iterate :: (x -> x) -> x -> List1 x
-iterate f x = x :& iterate f (f x)
+iterate f x = x :|| iterate f (f x)
 
 iterated :: (x -> x) -> x -> List1 x
-iterated f !x = x :& iterated f (f x)
+iterated f !x = x :|| iterated f (f x)
 
 repeat :: x -> List1 x
-repeat = fix (ap (:&))
+repeat = fix (ap (:||))
 
 replicate :: Int -> x -> List1 x
 replicate n x = case n of
   _ | n <= 0 -> error "Data.List1.replicate: argument must be positive"
   1 -> Sole x
-  _ -> x :& replicate (pred n) x
+  _ -> x :|| replicate (pred n) x
 
 cycle :: List1 x -> List1 x
 cycle = fix (ap (<>))
 
 intersperse :: x -> List1 x -> List1 x
-intersperse y (x :&? xs) = x :&? fmap ((y :&) . intersperse y) xs
+intersperse y (x :? xs) = x :? fmap ((y :||) . intersperse y) xs
 
 intercalate :: List1 x -> List1 (List1 x) -> List1 x
 intercalate = (join .) . intersperse
@@ -525,21 +525,21 @@ transpose :: List1 (List1 x) -> List1 (List1 x)
 transpose = NE.transpose
 
 subsequences :: List1 x -> List1 (List1 x)
-subsequences (x :&? xs) =
-  Sole x :&? fmap (ap (:&) (Sole . (x :&)) <=< subsequences) xs
+subsequences (x :? xs) =
+  Sole x :? fmap (ap (:||) (Sole . (x :||)) <=< subsequences) xs
 
 permutations :: List1 x -> List1 (List1 x)
 permutations xs =
-  (xs :&?) . fmap join $ flip diagonally xs \(t :| ts) hs ->
+  (xs :?) . fmap join $ flip diagonally xs \(t :| ts) hs ->
     fmap (<& ts) . insertions t =<< permutations hs
 
 diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
 diagonally f xs =
-  catMaybes
-    $ zipWith
+  catMaybes $
+    zipWith
       (liftM2 f)
       ((Just <$> tails xs) &: Nothing)
-      (Nothing :& (Just <$> inits xs))
+      (Nothing :|| (Just <$> inits xs))
 
 diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
 diagonals = diagonally (,)
@@ -549,7 +549,7 @@ diagonals = diagonally (,)
 -- >    : (a : x : b : cs)
 -- >    : (a : b : x : cs) ...
 insertions :: x -> List1 x -> List1 (List1 x)
-insertions x ly@(y :&? ys) = (x :& ly) :&? (fmap (y :&) . insertions x <$> ys)
+insertions x ly@(y :? ys) = (x :|| ly) :? (fmap (y :||) . insertions x <$> ys)
 
 compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
