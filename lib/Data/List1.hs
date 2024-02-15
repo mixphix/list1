@@ -99,19 +99,21 @@ module Data.List1 (
   diagonals,
   insertions,
   compareLength,
+  truncate,
+  truncate',
+  truncate1,
 ) where
 
 import Control.Applicative ((<|>))
 import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
 import Control.Monad.Fix (fix)
--- import Control.Monad.Fix (MonadFix (..), fix)
 -- import Control.Monad.Zip (MonadZip (..))
+import Data.Bifunctor (bimap)
 import Data.Bool (Bool (..), not, otherwise)
 -- import Data.Data (Data, Typeable)
 import Data.Eq (Eq (..))
--- import Data.Foldable (Foldable)
--- import Data.Foldable1 (Foldable1 (..))
 import Data.Foldable qualified as Fold
+-- import Data.Foldable1 (Foldable1 (..))
 import Data.Function (flip, id, on, ($), (.))
 import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
@@ -123,10 +125,11 @@ import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Traversable (for)
+import Data.Wedge (Wedge (Here, Nowhere, There))
+import GHC.Err (error)
 -- import GHC.Generics (Generic, Generic1)
 -- import GHC.IsList qualified (IsList (..))
 -- import GHC.IsList qualified as GHC (IsList)
-import GHC.Err (error)
 import Prelude (Enum (..), Integral)
 
 infixr 5 {- :|, -} :||, :?, |:, &:
@@ -553,3 +556,32 @@ insertions x ly@(y :? ys) = (x :|| ly) :? (fmap (y :||) . insertions x <$> ys)
 
 compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
+
+-- >>> truncate [1, 2, 3] [10, 20, 30, 40, 50]
+-- ([(1,10),(2,20),(3,30)],There [40,50])
+truncate :: [a] -> [b] -> ([(a, b)], Wedge [a] [b])
+truncate as bs =
+  bimap
+    (maybe [] toList)
+    (bimap toList toList)
+    (truncate' (list1 as) (list1 bs))
+
+truncate' ::
+  Maybe (NonEmpty a) ->
+  Maybe (NonEmpty b) ->
+  (Maybe (NonEmpty (a, b)), Wedge (NonEmpty a) (NonEmpty b))
+truncate' = fix \rec -> \cases
+  Nothing Nothing -> (Nothing, Nowhere)
+  Nothing (Just tb) -> (Nothing, There tb)
+  (Just ta) Nothing -> (Nothing, Here ta)
+  (Just (a :| as)) (Just (b :| bs)) ->
+    let (__, w) = rec (list1 as) (list1 bs)
+     in (Just ((a, b) :? __), w)
+
+truncate1 ::
+  NonEmpty a ->
+  NonEmpty b ->
+  (NonEmpty (a, b), Wedge (NonEmpty a) (NonEmpty b))
+truncate1 (a :| as) (b :| bs) =
+  let (__, w) = truncate' (list1 as) (list1 bs)
+   in ((a, b) :? __, w)

@@ -27,4 +27,4 @@ library
 
   hs-source-dirs:     lib
   exposed-modules:    Data.List1
-  build-depends:      base
+  build-depends:      base, smash
