@@ -286,8 +286,8 @@ inits = fromJust . list1 . Maybe.mapMaybe list1 . List.drop 1 . List.inits . toL
 
 -- | The sequence of suffixes of a 'List1', from longest to shortest.
 tails :: List1 x -> List1 (List1 x)
-tails xs = build1 \(.&?) end ->
-  fix (\go x@(_ :? y) -> x .&? maybe end (Just . go) y) xs
+tails xs = build1 \(.?) end ->
+  fix (\rec x@(_ :? y) -> x .? maybe end (Just . rec) y) xs
 
 -- | Pointwise product of two 'List1's.
 zip :: List1 x -> List1 y -> List1 (x, y)
@@ -325,14 +325,14 @@ accumr (+) a0 = \case
   x :|| xs -> case accumr (+) a0 xs of (a, ys) -> (a + x) <&> (:|| ys)
 
 scanl :: (y -> x -> y) -> y -> [x] -> List1 y
-scanl = fix \go f y -> \case
+scanl = fix \rec f y -> \case
   [] -> Sole y
-  x : xs -> go f (f y x) xs
+  x : xs -> rec f (f y x) xs
 
 scanl' :: (y -> x -> y) -> y -> [x] -> List1 y
-scanl' = fix \go f !y -> \case
+scanl' = fix \rec f !y -> \case
   [] -> Sole y
-  x : xs -> go f (f y x) xs
+  x : xs -> rec f (f y x) xs
 
 scanl1 :: (x -> x -> x) -> List1 x -> List1 x
 scanl1 f (x :| xs) = scanl f x xs
@@ -341,16 +341,16 @@ scanl1' :: (x -> x -> x) -> List1 x -> List1 x
 scanl1' f (x :| xs) = scanl' f x xs
 
 scanr :: (x -> y -> y) -> y -> [x] -> List1 y
-scanr = fix \go f y -> \case
+scanr = fix \rec f y -> \case
   [] -> Sole y
-  x : xs -> go f (f x y) xs
+  x : xs -> rec f (f x y) xs
 
 scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
 
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
-mapMaybe = fix \go f (x :? xs) ->
-  maybe id ((Just .) . (:?)) (f x) (go f =<< xs)
+mapMaybe = fix \rec f (x :? xs) ->
+  maybe id ((Just .) . (:?)) (f x) (rec f =<< xs)
 
 catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
