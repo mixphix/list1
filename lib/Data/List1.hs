@@ -8,7 +8,7 @@ module Data.List1 (
   (<&),
   (&>),
   (|:),
-  (&:),
+  (||:),
   list1,
   toList,
   unList1,
@@ -132,7 +132,7 @@ import GHC.Err (error)
 -- import GHC.IsList qualified as GHC (IsList)
 import Prelude (Enum (..), Integral)
 
-infixr 5 {- :|, -} :||, :?, |:, &:
+infixr 5 {- :|, -} :||, :?, |:, ||:
 
 infixl 4 <&, &>
 
@@ -188,8 +188,8 @@ xs &> ys = case xs of
 ys |: x = ys &> Sole x
 
 -- | Append an element to a 'List1'. C.f. '(:||)'.
-(&:) :: List1 x -> x -> List1 x
-(y :| ys) &: x = y :| (ys <> [x])
+(||:) :: List1 x -> x -> List1 x
+ys ||: x = ys <> Sole x
 
 -- | Together with 'unList1', witness the isomorphism @[x] ~ Maybe (List1 x)@.
 list1 :: [x] -> Maybe (List1 x)
@@ -238,7 +238,7 @@ nE lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
 -- | 'List1' the elements backwards.
 reverse :: List1 x -> List1 x
-reverse (x :| xs) = nE xs (Sole x) ((&: x) . reverse)
+reverse (x :| xs) = nE xs (Sole x) ((||: x) . reverse)
 
 -- instance Foldable1 List1 where
 foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
@@ -541,7 +541,7 @@ diagonally f xs =
   catMaybes $
     zipWith
       (liftM2 f)
-      ((Just <$> tails xs) &: Nothing)
+      ((Just <$> tails xs) ||: Nothing)
       (Nothing :|| (Just <$> inits xs))
 
 diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
