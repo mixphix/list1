@@ -8,6 +8,8 @@ maintainer:      brown.m@proton.me
 category:        Data
 build-type:      Simple
 extra-doc-files: CHANGELOG.md
+synopsis:        Helpers for working with NonEmpty lists.
+description:     Please see the README at https://github.com/mixphix/list1
 
 library
   ghc-options:        -Wall
@@ -27,4 +29,6 @@ library
 
   hs-source-dirs:     lib
   exposed-modules:    Data.List1
-  build-depends:      base, smash
+  build-depends:
+    , base
+    , smash
