@@ -1,5 +1,5 @@
 module Data.List1 (
-  List1 ((:|)),
+  List1 {- ((:|)) -},
   pattern Sole,
   pattern (:||),
   pattern (:?),
@@ -102,51 +102,48 @@ module Data.List1 (
   truncate1,
 ) where
 
-import Control.Applicative (Alternative ((<|>)), Applicative (..))
-import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
-import Control.Monad.Fix (MonadFix (mfix), fix)
-import Control.Monad.Zip (MonadZip (..))
+import Control.Applicative (Alternative ((<|>)))
+import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
+import Control.Monad.Fix (fix)
 import Data.Bifunctor (bimap)
 import Data.Bool (Bool (..), not, otherwise)
-import Data.Data (Data, Typeable)
 import Data.Eq (Eq (..))
-import Data.Foldable (Foldable)
 import Data.Foldable qualified as Fold
 import Data.Foldable1 (Foldable1 (foldMap1))
 import Data.Function (flip, id, on, ($), (.))
-import Data.Functor (Functor, fmap, void, ($>), (<$>), (<&>))
+import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
-import Data.List.NonEmpty (unfoldr)
-import Data.Maybe (Maybe (..), fromJust, fromMaybe, isJust, maybe)
+import Data.List.NonEmpty (NonEmpty ((:|)), unfoldr)
+import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Maybe qualified as Maybe
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
-import Data.Traversable (Traversable, for)
+import Data.Traversable (for)
 import Data.Wedge (Wedge (Here, Nowhere, There))
 import GHC.Err (error)
-import GHC.Generics (Generic, Generic1)
-import GHC.IsList qualified as GHC (IsList (..))
-import Prelude (Enum (..), Integral, Read, Show)
+import Prelude (Enum (..), Integral)
 
-infixr 5 :|, :||, :?, |:, ||:
+infixr 5 {- :|, -} :||, :?, |:, ||:
 
 infixl 4 <&, &>
 
-data List1 x = x :| [x]
-  deriving
-    ( Eq
-    , Ord
-    , Show
-    , Read
-    , Typeable
-    , Data
-    , Generic
-    , Generic1
-    , Functor
-    , Foldable
-    , Traversable
-    )
+type List1 = NonEmpty
+
+-- data List1 x = x :| [x]
+--   deriving
+--     ( Eq
+--     , Ord
+--     , Show
+--     , Read
+--     , Typeable
+--     , Data
+--     , Generic
+--     , Generic1
+--     , Functor
+--     , Foldable
+--     , Traversable
+--     )
 
 -- | Match a singleton 'List1'.
 pattern Sole :: x -> List1 x
@@ -214,18 +211,18 @@ onList1 f = fmap f . list1
 nE :: [x] -> y -> (List1 x -> y) -> y
 nE lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
-instance GHC.IsList (List1 x) where
-  type Item (List1 x) = x
+-- instance GHC.IsList (List1 x) where
+--   type Item (List1 x) = x
 
-  fromList :: [x] -> List1 x
-  fromList = fromMaybe (error "Data.List.List1.fromList []") . list1
+--   fromList :: [x] -> List1 x
+--   fromList = fromMaybe (error "Data.List.List1.fromList []") . list1
 
-  toList :: List1 x -> [x]
-  toList = toList
+--   toList :: List1 x -> [x]
+--   toList = toList
 
-instance Semigroup (List1 x) where
-  (<>) :: List1 x -> List1 x -> List1 x
-  (x :| xs) <> ys = x :| (xs <> Fold.toList ys)
+-- instance Semigroup (List1 x) where
+--   (<>) :: List1 x -> List1 x -> List1 x
+--   (x :| xs) <> ys = x :| (xs <> Fold.toList ys)
 
 -- | Type-restricted concatenation.
 (++) :: List1 x -> List1 x -> List1 x
@@ -235,22 +232,34 @@ instance Semigroup (List1 x) where
 reverse :: List1 x -> List1 x
 reverse (x :| xs) = nE xs (Sole x) ((||: x) . reverse)
 
-instance Foldable1 List1 where
-  foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
-  foldMap1 f = \case
-    Sole x -> f x
-    x :|| y -> f x <> foldMap1 f y
+-- instance Foldable1 List1 where
+--   foldMap1 :: (Semigroup s) => (x -> s) -> List1 x -> s
+--   foldMap1 f = \case
+--     Sole x -> f x
+--     x :|| y -> f x <> foldMap1 f y
 
-instance Applicative List1 where
-  pure :: x -> List1 x
-  pure = Sole
+-- instance Applicative List1 where
+--   pure :: x -> List1 x
+--   pure = Sole
 
-  (<*>) :: List1 (x -> y) -> List1 x -> List1 y
-  (<*>) = ap
+--   (<*>) :: List1 (x -> y) -> List1 x -> List1 y
+--   (<*>) = ap
 
-instance Monad List1 where
-  (>>=) :: List1 x -> (x -> List1 y) -> List1 y
-  (>>=) = flip foldMap1
+-- instance Monad List1 where
+--   (>>=) :: List1 x -> (x -> List1 y) -> List1 y
+--   (>>=) = flip foldMap1
+
+-- instance MonadZip List1 where
+--   mzip :: List1 x -> List1 y -> List1 (x, y)
+--   mzip = zip
+--   mzipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
+--   mzipWith = zipWith
+--   munzip :: List1 (x, y) -> (List1 x, List1 y)
+--   munzip = unzip
+
+-- instance MonadFix List1 where
+--   mfix :: (x -> List1 x) -> List1 x
+--   mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
 -- | Extract the first element of a 'List1'.
 head :: List1 x -> x
@@ -302,18 +311,6 @@ unzip :: List1 (x, y) -> (List1 x, List1 y)
 unzip = \case
   Sole (x, y) -> (Sole x, Sole y)
   (x, y) :|| xys -> case unzip xys of (xs, ys) -> (x :|| xs, y :|| ys)
-
-instance MonadZip List1 where
-  mzip :: List1 x -> List1 y -> List1 (x, y)
-  mzip = zip
-  mzipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
-  mzipWith = zipWith
-  munzip :: List1 (x, y) -> (List1 x, List1 y)
-  munzip = unzip
-
-instance MonadFix List1 where
-  mfix :: (x -> List1 x) -> List1 x
-  mfix f = case fix (f . head) of (x :| _) -> x :| mfix (tail . f)
 
 accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accuml (+) a0 (x :? xs) = case a0 + x of
