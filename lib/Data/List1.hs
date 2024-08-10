@@ -12,6 +12,7 @@ module Data.List1 (
   toList,
   unList1,
   onList,
+  asList,
   ifList1,
   whenList1,
   has01,
@@ -207,7 +208,7 @@ unList1 = maybe [] toList
 onList :: (List1 x -> List1 x) -> [x] -> [x]
 onList f = maybe [] (toList . f) . list1
 
--- | Apply a regular function on a 'List1'. Try not to shorten the list.
+-- | Apply a regular list function on a 'List1'. Avoid shortening the list.
 asList :: ([x] -> [x]) -> List1 x -> List1 x
 asList f = fromJust . list1 . f . toList
 
