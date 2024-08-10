@@ -1,5 +1,15 @@
 # Revision history for list1
 
+## 0.0.2 -- 2024-08-10
+
+* function `(?:) :: Maybe (List1 x) -> x -> List1 x` reminiscent of `pattern (:?)`
+* renamed `onList1 -> ifList1`, `nE -> has01`
+* new function `whenList1 :: (Monad m) => [x] -> (List1 x -> m ()) -> m ()`
+* fix `scanl`, `scanl'`, `scanl1`, `scanl1'`, `scanr`, `scanr1`
+* fix `intersect`, `intersectOn`, `intersectBy`
+* `inits` implementation localized
+* more explicit recursion
+
 ## 0.0.1
 
 * rename package to `list1`

@@ -1,6 +1,6 @@
 cabal-version:   3.4
 name:            list1
-version:         0.0.1
+version:         0.0.2
 license:         BSD-3-Clause
 license-file:    LICENSE
 author:          Melanie Phoenix
@@ -30,5 +30,5 @@ library
   hs-source-dirs:     lib
   exposed-modules:    Data.List1
   build-depends:
-    , base
-    , smash
+    , base   >=4.18   && <5
+    , smash  >=0.1.4
