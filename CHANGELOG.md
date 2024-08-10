@@ -1,5 +1,9 @@
 # Revision history for list1
 
+## Unreleased
+
+* reverse `inits` and `tails` in `diagonally`
+
 ## 0.0.2 -- 2024-08-10
 
 * function `(?:) :: Maybe (List1 x) -> x -> List1 x` reminiscent of `pattern (:?)`

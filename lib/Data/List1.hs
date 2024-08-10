@@ -551,7 +551,7 @@ subsequences = fix \rec (x :? xs) ->
 
 permutations :: List1 x -> List1 (List1 x)
 permutations = fix \rec xs ->
-  (xs :?) . fmap join $ flip diagonally xs \(t :| ts) hs ->
+  (xs :?) . fmap join $ flip diagonally xs \hs (t :| ts) ->
     fmap (<& ts) . insertions t =<< rec hs
 
 diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
@@ -559,9 +559,11 @@ diagonally f xs =
   catMaybes $
     zipWith
       (liftM2 f)
-      ((Just <$> tails xs) ||: Nothing)
       (Nothing :|| (Just <$> inits xs))
+      ((Just <$> tails xs) ||: Nothing)
 
+-- | The 'init' and 'tail' of the 'List1' at each positive index.
+-- > diagonals [1, 2, 3] == [([1], [2, 3]), ([1, 2], [3])]
 diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
 diagonals = diagonally (,)
 
