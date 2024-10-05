@@ -370,8 +370,9 @@ scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
 
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
-mapMaybe f = fix \rec (x :? xs) ->
-  maybe id ((Just .) . (:?)) (f x) (rec =<< xs)
+mapMaybe f = fix \rec (x :? xs) -> case f x of
+  Nothing -> rec =<< xs
+  Just fx -> Just (fx :? (rec =<< xs))
 
 catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
@@ -542,9 +543,10 @@ intercalate :: List1 x -> List1 (List1 x) -> List1 x
 intercalate = (join .) . intersperse
 
 transpose :: List1 (List1 x) -> List1 (List1 x)
-transpose = fix \rec ((y :| ys) :| xss) ->
-  let (hs, ts) = List.unzip $ xss <&> \(h :| t) -> (h, t)
-   in maybe Sole (flip (:||) . rec) (mapMaybe list1 (ys :| ts)) (y :| hs)
+transpose = fix \rec ((x :| xs) :| xss) -> case List.unzip (fmap uncons xss) of
+  (hs, ts) -> case mapMaybe list1 (xs :| ts) of
+    Nothing -> Sole (x :| hs)
+    Just ys -> (x :| hs) :|| rec ys
 
 subsequences :: List1 x -> List1 (List1 x)
 subsequences = fix \rec (x :? xs) ->
