@@ -4,6 +4,7 @@
 
 * reverse `inits` and `tails` in `diagonally`
 * export `asList :: ([x] -> [x]) -> List1 x -> List1 x`
+* fix `delete` and `deleteBy`
 
 ## 0.0.2 -- 2024-08-10
 

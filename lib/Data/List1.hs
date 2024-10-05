@@ -393,7 +393,7 @@ delete :: (Eq x) => x -> List1 x -> Maybe (List1 x)
 delete = deleteBy (==)
 
 deleteBy :: (x -> x -> Bool) -> x -> List1 x -> Maybe (List1 x)
-deleteBy eq y = fix \rec (x :? xs) -> (guard (eq y x) >> xs) <|> (rec =<< xs)
+deleteBy eq y = fix \rec (x :? xs) -> if eq x y then xs else Just (x :? (rec =<< xs))
 
 (\\) :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 xs \\ os = filter (not . (`elem` os)) xs
