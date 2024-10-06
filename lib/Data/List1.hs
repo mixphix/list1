@@ -17,6 +17,7 @@ module Data.List1 (
   whenList1,
   has01,
   uncons,
+  unsnoc,
   (++),
   reverse,
   head,
@@ -108,7 +109,7 @@ module Data.List1 (
 import Control.Applicative (Applicative (pure))
 import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
 import Control.Monad.Fix (fix)
-import Data.Bifunctor (bimap)
+import Data.Bifunctor (Bifunctor (first), bimap)
 import Data.Bits ((.&.))
 import Data.Bool (Bool (..), not, otherwise, (||))
 import Data.Eq (Eq (..))
@@ -302,6 +303,12 @@ last = \case
 -- | Convenience function for decomposing 'List1' into its 'head' and 'tail'.
 uncons :: List1 x -> (x, [x])
 uncons (x :| xs) = (x, xs)
+
+-- | Convenience function for decomposing 'List1' into its 'init' and 'last'.
+unsnoc :: List1 x -> ([x], x)
+unsnoc (x :| xs) = case list1 xs of
+  Nothing -> ([], x)
+  Just ys -> first (x :) (unsnoc ys)
 
 -- | Th 'List1' analogue of 'build'.
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
