@@ -122,6 +122,7 @@ import Data.List.NonEmpty (NonEmpty ((:|)), unfoldr)
 import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
+import Data.Tuple (fst, snd)
 import Data.Wedge (Wedge (Here, Nowhere, There))
 import Data.Word (Word)
 import GHC.Err (error)
@@ -443,8 +444,8 @@ findIndices p xs = flip mapMaybe (index xs) \(i, x) -> guard (p x) $> i
   | n == 0 = Just x
   | otherwise = xs >>= (!? pred n)
 
-lookup :: Int -> List1 x -> Maybe x
-lookup = flip (!?)
+lookup :: (Eq x) => x -> List1 (x, y) -> Maybe y
+lookup x = fmap snd . find ((x ==) . fst)
 
 sort :: (Ord x) => List1 x -> List1 x
 sort = asList List.sort
