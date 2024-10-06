@@ -105,7 +105,7 @@ module Data.List1 (
   truncate1,
 ) where
 
-import Control.Applicative (Alternative ((<|>)), Applicative (pure))
+import Control.Applicative (Applicative (pure))
 import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
 import Control.Monad.Fix (fix)
 import Data.Bifunctor (bimap)
@@ -118,15 +118,17 @@ import Data.Function (flip, id, on, ($), (.))
 import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
-import Data.List.NonEmpty (NonEmpty ((:|)), unfoldr)
+import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Tuple (fst, snd)
-import Data.Wedge (Wedge (Here, Nowhere, There))
+import Data.Wedge (Wedge (..))
 import Data.Word (Word)
+import GHC.Enum (Enum (pred, succ))
 import GHC.Err (error)
-import Prelude (Enum (..), Integral)
+import GHC.Real (Integral)
+import Prelude ()
 
 infixr 5 {- :|, -} :||, :?, |:, ||:, ?:
 
@@ -369,6 +371,9 @@ scanr (+) = fix \rec y zs ->
 
 scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
+
+unfoldr :: (x -> (y, Maybe x)) -> x -> List1 y
+unfoldr f x = case f x of (y, mx) -> y :? fmap (unfoldr f) mx
 
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
 mapMaybe f = fix \rec (x :? xs) -> case f x of
