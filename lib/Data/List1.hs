@@ -107,7 +107,7 @@ module Data.List1 (
 ) where
 
 import Control.Applicative (Applicative (pure))
-import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>), (>>=))
+import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>=))
 import Control.Monad.Fix (fix)
 import Data.Bifunctor (Bifunctor (first), bimap)
 import Data.Bits ((.&.))
@@ -120,7 +120,7 @@ import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
+import Data.Maybe (Maybe (..), fromJust, fromMaybe, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Tuple (fst, snd)
@@ -129,6 +129,7 @@ import Data.Word (Word)
 import GHC.Enum (Enum (pred, succ))
 import GHC.Err (error)
 import GHC.Real (Integral)
+import GHC.Stack (HasCallStack)
 import Prelude ()
 
 infixr 5 {- :|, -} :||, :?, |:, ||:, ?:
@@ -213,8 +214,8 @@ onList :: (List1 x -> List1 x) -> [x] -> [x]
 onList f = maybe [] (toList . f) . list1
 
 -- | Apply a regular list function on a 'List1'. Avoid shortening the list.
-asList :: ([x] -> [x]) -> List1 x -> List1 x
-asList f = fromJust . list1 . f . toList
+asList :: (HasCallStack) => ([x] -> [x]) -> List1 x -> List1 x
+asList f = fromMaybe (error "Data.List1.asList: list got shortened") . list1 . f . toList
 
 -- | Apply a 'List1' function if the list is not empty.
 ifList1 :: [x] -> (List1 x -> y) -> Maybe y
@@ -350,8 +351,8 @@ unzip = fix \rec -> \case
   (x, y) :|| xys -> case rec xys of (xs, ys) -> (x :|| xs, y :|| ys)
 
 accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
-accuml (+) a0 = fix \rec (x :? xs) -> case a0 + x of
-  (a, y) -> maybe (a, Sole y) (fmap (y :||) . rec) xs
+accuml (+) a0 = fix \rec (x :| xs) -> case a0 + x of
+  (a, y) -> has01 xs (a, Sole y) (fmap (y :||) . rec)
 
 accumr :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accumr (+) a0 = fix \rec -> \case
@@ -383,9 +384,7 @@ unfoldr :: (x -> (y, Maybe x)) -> x -> List1 y
 unfoldr f x = case f x of (y, mx) -> y :? fmap (unfoldr f) mx
 
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
-mapMaybe f = fix \rec (x :? xs) -> case f x of
-  Nothing -> rec =<< xs
-  Just fx -> Just (fx :? (rec =<< xs))
+mapMaybe f = fix \rec (x :? xs) -> maybe id (\fx -> Just . (fx :?)) (f x) (rec =<< xs)
 
 catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
@@ -397,10 +396,10 @@ drop :: Int -> List1 x -> Maybe (List1 x)
 drop = fix \rec n (x :? xs) -> if n <= 0 then Just (x :? xs) else rec (pred n) =<< xs
 
 takeWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
-takeWhile p (x :? xs) = guard (p x) >> (fmap (x :||) . takeWhile p =<< xs)
+takeWhile p = fix \rec (x :? xs) -> guard (p x) $> x :? (rec =<< xs)
 
 dropWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
-dropWhile p (x :? xs) = if p x then dropWhile p =<< xs else Just (x :? xs)
+dropWhile p = fix \rec (x :? xs) -> if p x then rec =<< xs else Just (x :? xs)
 
 delete :: (Eq x) => x -> List1 x -> Maybe (List1 x)
 delete = deleteBy (==)
@@ -579,6 +578,7 @@ diagonally f xs =
       ((Just <$> tails xs) ||: Nothing)
 
 -- | The 'init' and 'tail' of the 'List1' at each positive index.
+--
 -- > diagonals [1, 2, 3] == [([1], [2, 3]), ([1, 2], [3])]
 diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
 diagonals = diagonally (,)

@@ -7,6 +7,7 @@
 * reverse `inits` and `tails` in `diagonally`
 * export `asList :: ([x] -> [x]) -> List1 x -> List1 x`
 * fix `delete` and `deleteBy`
+* fix `takeWhile`
 * add `unsnoc`
 * rename `truncate` family to `zipWithTruncate`
 
