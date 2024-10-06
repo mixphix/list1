@@ -9,6 +9,7 @@
 * fix `delete` and `deleteBy`
 * fix `takeWhile`
 * add `unsnoc`
+* new function `has1Plus` extending `has01`
 * rename `truncate` family to `zipWithTruncate`
 
 ## 0.0.2 -- 2024-08-10

@@ -16,6 +16,7 @@ module Data.List1 (
   ifList1,
   whenList1,
   has01,
+  has1Plus,
   uncons,
   unsnoc,
   (++),
@@ -115,7 +116,7 @@ import Data.Bool (Bool (..), not, otherwise, (||))
 import Data.Eq (Eq (..))
 import Data.Foldable qualified as Fold
 import Data.Foldable1 (Foldable1 (foldMap1))
-import Data.Function (flip, id, on, ($), (.))
+import Data.Function (const, flip, id, on, ($), (.))
 import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
@@ -179,9 +180,7 @@ x :| xs <& ys = x :| (xs <> ys)
 
 -- | Append a 'List1' to a list.
 (&>) :: [x] -> List1 x -> List1 x
-xs &> ys = case xs of
-  [] -> ys
-  x : zs -> x :|| (zs &> ys)
+xs &> ys = has01 xs ys \(x :| zs) -> x :|| (zs &> ys)
 
 -- | Append an element to a list. C.f. '(:|)'.
 (|:) :: [x] -> x -> List1 x
@@ -197,9 +196,7 @@ ys ?: x = maybe (Sole x) (||: x) ys
 
 -- | Together with 'unList1', witness the isomorphism @[x] ~ Maybe (List1 x)@.
 list1 :: [x] -> Maybe (List1 x)
-list1 = \case
-  [] -> Nothing
-  x : xs -> Just (x :| xs)
+list1 xs = has01 xs Nothing Just
 
 -- | Forget the nonemptiness information.
 toList :: List1 x -> [x]
@@ -219,7 +216,7 @@ asList f = fromMaybe (error "Data.List1.asList: list got shortened") . list1 . f
 
 -- | Apply a 'List1' function if the list is not empty.
 ifList1 :: [x] -> (List1 x -> y) -> Maybe y
-ifList1 xs f = fmap f (list1 xs)
+ifList1 xs = has01 xs Nothing . (Just .)
 
 -- | Run an action taking a 'List1' if the list is not empty.
 whenList1 :: (Monad m) => [x] -> (List1 x -> m ()) -> m ()
@@ -230,6 +227,11 @@ whenList1 = (`has01` pure ())
 -- Flipped variant of what some call @withNonEmpty@ or @withNotNull@.
 has01 :: [x] -> y -> (List1 x -> y) -> y
 has01 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
+
+-- |
+-- Case split on a 'List1' with a default value and a 'List1' function.
+has1Plus :: List1 x -> (x -> y) -> (x -> List1 x -> y) -> y
+has1Plus lx y xy = case lx of Sole x -> y x; x :|| xs -> xy x xs
 
 -- instance GHC.IsList (List1 x) where
 --   type Item (List1 x) = x
@@ -291,15 +293,11 @@ tail (_ :| xs) = xs
 
 -- | Extract all but the last element of a 'List1'.
 init :: List1 x -> [x]
-init = \case
-  Sole _ -> []
-  x :|| xs -> x : init xs
+init xs = has1Plus xs (const []) \y ys -> y : init ys
 
 -- | Extract the last element of a 'List1'.
 last :: List1 x -> x
-last = \case
-  Sole x -> x
-  _ :|| xs -> last xs
+last xs = has1Plus xs id (const last)
 
 -- | Convenience function for decomposing 'List1' into its 'head' and 'tail'.
 uncons :: List1 x -> (x, [x])
@@ -307,9 +305,7 @@ uncons (x :| xs) = (x, xs)
 
 -- | Convenience function for decomposing 'List1' into its 'init' and 'last'.
 unsnoc :: List1 x -> ([x], x)
-unsnoc (x :| xs) = case list1 xs of
-  Nothing -> ([], x)
-  Just ys -> first (x :) (unsnoc ys)
+unsnoc = fix \rec (x :| xs) -> has01 xs ([], x) (first (x :) . rec)
 
 -- | Th 'List1' analogue of 'build'.
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
