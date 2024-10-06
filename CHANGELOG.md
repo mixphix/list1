@@ -8,6 +8,7 @@
 * export `asList :: ([x] -> [x]) -> List1 x -> List1 x`
 * fix `delete` and `deleteBy`
 * add `unsnoc`
+* rename `truncate` family to `zipWithTruncate`
 
 ## 0.0.2 -- 2024-08-10
 

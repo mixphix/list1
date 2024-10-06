@@ -101,9 +101,9 @@ module Data.List1 (
   diagonals,
   insertions,
   compareLength,
-  truncate,
-  truncate',
-  truncate1,
+  zipWithTruncate,
+  zipWithTruncate',
+  zipWithTruncate1,
 ) where
 
 import Control.Applicative (Applicative (pure))
@@ -341,7 +341,7 @@ zip = zipWith (,)
 
 -- | Pointwise application of two 'List1's.
 zipWith :: (x -> y -> z) -> List1 x -> List1 y -> List1 z
-zipWith (+) (x :| xs) (y :| ys) = x + y :| List.zipWith (+) xs ys
+zipWith f = (fst .) . zipWithTruncate1 f
 
 -- | Decompose a 'List1' of pairs into a pair of 'List1's.
 unzip :: List1 (x, y) -> (List1 x, List1 y)
@@ -594,31 +594,33 @@ insertions x = fix \rec ly@(y :? ys) ->
 compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
 
--- >>> truncate [1, 2, 3] [10, 20, 30, 40, 50]
+-- >>> zipWithTruncate (,) [1, 2, 3] [10, 20, 30, 40, 50]
 -- ([(1,10),(2,20),(3,30)],There [40,50])
-truncate :: [a] -> [b] -> ([(a, b)], Wedge [a] [b])
-truncate as bs =
+zipWithTruncate :: (a -> b -> c) -> [a] -> [b] -> ([c], Wedge [a] [b])
+zipWithTruncate f as bs =
   bimap
     (maybe [] toList)
     (bimap toList toList)
-    (truncate' (list1 as) (list1 bs))
+    (zipWithTruncate' f (list1 as) (list1 bs))
 
-truncate' ::
+zipWithTruncate' ::
+  (a -> b -> c) ->
   Maybe (List1 a) ->
   Maybe (List1 b) ->
-  (Maybe (List1 (a, b)), Wedge (List1 a) (List1 b))
-truncate' = fix \rec -> \cases
+  (Maybe (List1 c), Wedge (List1 a) (List1 b))
+zipWithTruncate' f = fix \rec -> \cases
   Nothing Nothing -> (Nothing, Nowhere)
   Nothing (Just tb) -> (Nothing, There tb)
   (Just ta) Nothing -> (Nothing, Here ta)
   (Just (a :| as)) (Just (b :| bs)) ->
     let (__, w) = rec (list1 as) (list1 bs)
-     in (Just ((a, b) :? __), w)
+     in (Just (f a b :? __), w)
 
-truncate1 ::
+zipWithTruncate1 ::
+  (a -> b -> c) ->
   List1 a ->
   List1 b ->
-  (List1 (a, b), Wedge (List1 a) (List1 b))
-truncate1 (a :| as) (b :| bs) =
-  let (__, w) = truncate' (list1 as) (list1 bs)
-   in ((a, b) :? __, w)
+  (List1 c, Wedge (List1 a) (List1 b))
+zipWithTruncate1 f (a :| as) (b :| bs) =
+  let (__, w) = zipWithTruncate' f (list1 as) (list1 bs)
+   in (f a b :? __, w)
