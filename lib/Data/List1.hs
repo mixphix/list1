@@ -212,7 +212,7 @@ onList f = maybe [] (toList . f) . list1
 
 -- | Apply a regular list function on a 'List1'. Avoid shortening the list.
 asList :: (HasCallStack) => ([x] -> [x]) -> List1 x -> List1 x
-asList f = fromMaybe (error "Data.List1.asList: list got shortened") . list1 . f . toList
+asList f xs = has01 (f (toList xs)) (error "Data.List1.asList: list got shortened") id
 
 -- | Apply a 'List1' function if the list is not empty.
 ifList1 :: [x] -> (List1 x -> y) -> Maybe y
@@ -293,11 +293,11 @@ tail (_ :| xs) = xs
 
 -- | Extract all but the last element of a 'List1'.
 init :: List1 x -> [x]
-init xs = has1Plus xs (const []) \y ys -> y : init ys
+init = fix \rec xs -> has1Plus xs (const []) \y ys -> y : rec ys
 
 -- | Extract the last element of a 'List1'.
 last :: List1 x -> x
-last xs = has1Plus xs id (const last)
+last = fix \rec xs -> has1Plus xs id (const rec)
 
 -- | Convenience function for decomposing 'List1' into its 'head' and 'tail'.
 uncons :: List1 x -> (x, [x])
@@ -307,7 +307,7 @@ uncons (x :| xs) = (x, xs)
 unsnoc :: List1 x -> ([x], x)
 unsnoc = fix \rec (x :| xs) -> has01 xs ([], x) (first (x :) . rec)
 
--- | Th 'List1' analogue of 'build'.
+-- | The 'List1' analogue of 'build'.
 build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
 build1 f = f (:?) Nothing
 
