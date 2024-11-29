@@ -121,7 +121,7 @@ import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.Maybe (Maybe (..), fromJust, fromMaybe, isJust, maybe)
+import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Tuple (fst, snd)
@@ -575,9 +575,10 @@ diagonally f xs =
 
 -- | The 'init' and 'tail' of the 'List1' at each positive index.
 --
--- > diagonals [1, 2, 3] == [([1], [2, 3]), ([1, 2], [3])]
-diagonals :: List1 x -> Maybe (List1 (List1 x, List1 x))
-diagonals = diagonally (,)
+-- >>> diagonals (1 :| [2, 3, 4])
+-- [(1 :| [],2 :| [3,4]),(1 :| [2],3 :| [4]),(1 :| [2,3],4 :| [])]
+diagonals :: List1 x -> [(List1 x, List1 x)]
+diagonals = unList1 . diagonally (,)
 
 -- > insertions x (a : b : cs)
 -- >   == (x : a : b : cs)

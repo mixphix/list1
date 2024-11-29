@@ -11,6 +11,7 @@
 * add `unsnoc`
 * new function `has1Plus` extending `has01`
 * rename `truncate` family to `zipWithTruncate`
+* change type of `diagonals`
 
 ## 0.0.2 -- 2024-08-10
 
