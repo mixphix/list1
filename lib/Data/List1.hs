@@ -3,8 +3,8 @@ module Data.List1 (
   pattern Sole,
   pattern (:||),
   pattern (:?),
-  (<&),
-  (&>),
+  (<|),
+  (|>),
   (|:),
   (||:),
   (?:),
@@ -135,7 +135,7 @@ import Prelude ()
 
 infixr 5 {- :|, -} :||, :?, |:, ||:, ?:
 
-infixl 4 <&, &>
+infixl 4 <|, |>
 
 type List1 = NonEmpty
 
@@ -175,16 +175,16 @@ pattern x :? y <- (x :| ~(list1 -> y))
 {-# COMPLETE (:?) #-}
 
 -- | Prepend a 'List1' to a list.
-(<&) :: List1 x -> [x] -> List1 x
-x :| xs <& ys = x :| (xs <> ys)
+(<|) :: List1 x -> [x] -> List1 x
+(x :| xs) <| ys = x :| (xs <> ys)
 
 -- | Append a 'List1' to a list.
-(&>) :: [x] -> List1 x -> List1 x
-xs &> ys = has01 xs ys \(x :| zs) -> x :|| (zs &> ys)
+(|>) :: [x] -> List1 x -> List1 x
+xs |> ys = has01 xs ys \(x :| zs) -> x :|| (zs |> ys)
 
 -- | Append an element to a list. C.f. '(:|)'.
 (|:) :: [x] -> x -> List1 x
-ys |: x = ys &> Sole x
+ys |: x = ys |> Sole x
 
 -- | Append an element to a 'List1'. C.f. '(:||)'.
 (||:) :: List1 x -> x -> List1 x
@@ -317,12 +317,12 @@ data Snoc1 x = Snoc1 {-# UNPACK #-} !Word (List1 x) [x]
 inits :: List1 x -> List1 (List1 x)
 inits (x :| xs) =
   scanl' snoc (snoc1 1 (Sole x) []) xs
-    <&> \(Snoc1 _ front rear) -> front <& List.reverse rear
+    <&> \(Snoc1 _ front rear) -> front <| List.reverse rear
  where
   snoc1 :: Word -> List1 x -> [x] -> Snoc1 x
   snoc1 len front rear
     | len < 255 || (len .&. succ len) /= 0 = Snoc1 len front rear
-    | otherwise = Snoc1 len (front <& List.reverse rear) []
+    | otherwise = Snoc1 len (front <| List.reverse rear) []
 
   snoc :: Snoc1 x -> x -> Snoc1 x
   snoc (Snoc1 len front rear) y = snoc1 (succ len) front (y : rear)
@@ -563,7 +563,7 @@ subsequences = fix \rec (x :? xs) ->
 permutations :: List1 x -> List1 (List1 x)
 permutations = fix \rec xs ->
   (xs :?) . fmap join $ flip diagonally xs \hs (t :| ts) ->
-    fmap (<& ts) . insertions t =<< rec hs
+    fmap (<| ts) . insertions t =<< rec hs
 
 diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
 diagonally f xs =
