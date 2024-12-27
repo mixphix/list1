@@ -1,6 +1,6 @@
 # Revision history for list1
 
-## Unreleased
+## 0.0.3 -- 2024-12-27
 
 * change type of `lookup` to match `Data.List`
 * localize definition of `unfoldr`
@@ -12,6 +12,7 @@
 * new function `has1Plus` extending `has01`
 * rename `truncate` family to `zipWithTruncate`
 * change type of `diagonals`
+* change `(<&)` and `(&>)` to `(<|)` and `(|>)` respectively
 
 ## 0.0.2 -- 2024-08-10
 
