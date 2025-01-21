@@ -313,7 +313,7 @@ build1 f = f (:?) Nothing
 
 data Snoc1 x = Snoc1 {-# UNPACK #-} !Word (List1 x) [x]
 
--- | The sequence of prefixes of a 'List1', from longest to shortest.
+-- | The sequence of prefixes of a 'List1', from shortest to longest.
 inits :: List1 x -> List1 (List1 x)
 inits (x :| xs) =
   scanl' snoc (snoc1 1 (Sole x) []) xs
