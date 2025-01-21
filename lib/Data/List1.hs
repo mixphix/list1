@@ -97,6 +97,7 @@ module Data.List1 (
   intercalate,
   transpose,
   subsequences,
+  windows,
   permutations,
   diagonally,
   diagonals,
@@ -129,6 +130,7 @@ import Data.Wedge (Wedge (..))
 import Data.Word (Word)
 import GHC.Enum (Enum (pred, succ))
 import GHC.Err (error)
+import GHC.Num qualified as Num
 import GHC.Real (Integral)
 import GHC.Stack (HasCallStack)
 import Prelude ()
@@ -559,6 +561,9 @@ transpose = fix \rec ((x :| xs) :| xss) -> case List.unzip (fmap uncons xss) of
 subsequences :: List1 x -> List1 (List1 x)
 subsequences = fix \rec (x :? xs) ->
   Sole x :? fmap (ap (:||) (Sole . (x :||)) <=< rec) xs
+
+windows :: Int -> List1 x -> Maybe (List1 (List1 x))
+windows n xs = take (Fold.length xs Num.- n Num.+ 1) =<< mapMaybe (take n) (tails xs)
 
 permutations :: List1 x -> List1 (List1 x)
 permutations = fix \rec xs ->

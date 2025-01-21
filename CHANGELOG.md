@@ -1,5 +1,9 @@
 # Revision history for list1
 
+# Unreleased
+
+* `windows :: Int -> List1 x -> Maybe (List1 (List1 x))`
+
 ## 0.0.3 -- 2024-12-27
 
 * change type of `lookup` to match `Data.List`
