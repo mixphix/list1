@@ -349,8 +349,9 @@ unzip = fix \rec -> \case
   (x, y) :|| xys -> case rec xys of (xs, ys) -> (x :|| xs, y :|| ys)
 
 accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
-accuml (+) a0 = fix \rec (x :| xs) -> case a0 + x of
-  (a, y) -> has01 xs (a, Sole y) (fmap (y :||) . rec)
+accuml (+) = fix \rec a0 -> \case
+  Sole x -> Sole <$> (a0 + x)
+  x :|| xs -> case a0 + x of (a, y) -> (y :||) <$> rec a xs
 
 accumr :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accumr (+) a0 = fix \rec -> \case
