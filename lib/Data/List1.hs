@@ -232,7 +232,7 @@ has01 :: [x] -> y -> (List1 x -> y) -> y
 has01 lx y xy = case lx of [] -> y; x : xs -> xy (x :| xs)
 
 -- |
--- Case split on a 'List1' with a default value and a 'List1' function.
+-- Case split on a 'List1' with a simple function and a 'List1' function.
 has1Plus :: List1 x -> (x -> y) -> (x -> List1 x -> y) -> y
 has1Plus lx y xy = case lx of Sole x -> y x; x :|| xs -> xy x xs
 
