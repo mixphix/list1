@@ -511,7 +511,7 @@ maximum = Fold.maximum
 maximumOf :: (Ord y) => (x -> y) -> List1 x -> y
 maximumOf f = maximum . fmap f
 
-maximumOn :: (Ord x, Ord y) => (x -> y) -> List1 x -> x
+maximumOn :: (Ord y) => (x -> y) -> List1 x -> x
 maximumOn f = maximumBy (comparing f)
 
 maximumBy :: (x -> x -> Ordering) -> List1 x -> x
@@ -523,7 +523,7 @@ minimum = Fold.minimum
 minimumOf :: (Ord y) => (x -> y) -> List1 x -> y
 minimumOf f = minimum . fmap f
 
-minimumOn :: (Ord x, Ord y) => (x -> y) -> List1 x -> x
+minimumOn :: (Ord y) => (x -> y) -> List1 x -> x
 minimumOn f = minimumBy (comparing f)
 
 minimumBy :: (x -> x -> Ordering) -> List1 x -> x

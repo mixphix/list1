@@ -5,6 +5,7 @@
 * `windows :: Int -> List1 x -> Maybe (List1 (List1 x))`
 * `consecutiveSubsequences :: List1 x -> List1 (List1 x)`
 * fix `accuml`
+* relax constraints of `mininumOn` and `maximumOn` to only the target requiring `Ord`
 
 ## 0.0.3 -- 2024-12-27
 
