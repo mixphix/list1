@@ -3,6 +3,7 @@
 # Unreleased
 
 * `windows :: Int -> List1 x -> Maybe (List1 (List1 x))`
+* `consecutiveSubsequences :: List1 x -> List1 (List1 x)`
 * fix `accuml`
 
 ## 0.0.3 -- 2024-12-27

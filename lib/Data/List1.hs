@@ -98,6 +98,7 @@ module Data.List1 (
   transpose,
   subsequences,
   windows,
+  consecutiveSubsequences,
   permutations,
   diagonally,
   diagonals,
@@ -122,7 +123,7 @@ import Data.Functor (fmap, void, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
-import Data.Maybe (Maybe (..), fromJust, isJust, maybe)
+import Data.Maybe (Maybe (..), fromJust, fromMaybe, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Tuple (fst, snd)
@@ -565,6 +566,9 @@ subsequences = fix \rec (x :? xs) ->
 
 windows :: Int -> List1 x -> Maybe (List1 (List1 x))
 windows n xs = take (Fold.length xs Num.- n Num.+ 1) =<< mapMaybe (take n) (tails xs)
+
+consecutiveSubsequences :: List1 x -> List1 (List1 x)
+consecutiveSubsequences xs = fromMaybe (Sole xs) $ Fold.foldMap (`windows` xs) [1 .. Fold.length xs]
 
 permutations :: List1 x -> List1 (List1 x)
 permutations = fix \rec xs ->
