@@ -310,10 +310,6 @@ uncons (x :| xs) = (x, xs)
 unsnoc :: List1 x -> ([x], x)
 unsnoc = fix \rec (x :| xs) -> has01 xs ([], x) (first (x :) . rec)
 
--- | The 'List1' analogue of 'build'.
-build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
-build1 f = f (:?) Nothing
-
 data Snoc1 x = Snoc1 {-# UNPACK #-} !Word (List1 x) [x]
 
 -- | The sequence of prefixes of a 'List1', from shortest to longest.
@@ -329,6 +325,10 @@ inits (x :| xs) =
 
   snoc :: Snoc1 x -> x -> Snoc1 x
   snoc (Snoc1 len front rear) y = snoc1 (succ len) front (y : rear)
+
+-- | The 'List1' analogue of 'build'.
+build1 :: forall x. (forall y. (x -> Maybe y -> y) -> Maybe y -> y) -> List1 x
+build1 f = f (:?) Nothing
 
 -- | The sequence of suffixes of a 'List1', from longest to shortest.
 tails :: List1 x -> List1 (List1 x)
@@ -560,21 +560,26 @@ transpose = fix \rec ((x :| xs) :| xss) -> case List.unzip (fmap uncons xss) of
     Nothing -> Sole (x :| hs)
     Just ys -> (x :| hs) :|| rec ys
 
+-- | All of the non-empty sublists of a 'List1', including those that skip elements.
 subsequences :: List1 x -> List1 (List1 x)
 subsequences = fix \rec (x :? xs) ->
   Sole x :? fmap (ap (:||) (Sole . (x :||)) <=< rec) xs
 
+-- | @windows n@ lists the consecutive 'subsequences' of length @n@ of a 'List1': the subsequences of length @n@ that do not skip any elements.
 windows :: Int -> List1 x -> Maybe (List1 (List1 x))
 windows n xs = take (Fold.length xs Num.- n Num.+ 1) =<< mapMaybe (take n) (tails xs)
 
+-- | All of the consecutive subsequences of a 'List1': the 'subsequences' that do not skip any elements.
 consecutiveSubsequences :: List1 x -> List1 (List1 x)
 consecutiveSubsequences xs = fromMaybe (Sole xs) $ Fold.foldMap (`windows` xs) [1 .. Fold.length xs]
 
+-- | The 'List1' of all rearrangements of a 'List1'.
 permutations :: List1 x -> List1 (List1 x)
 permutations = fix \rec xs ->
   (xs :?) . fmap join $ flip diagonally xs \hs (t :| ts) ->
     fmap (<| ts) . insertions t =<< rec hs
 
+-- | Apply a function on the prefix and suffix of a 'List1' at every index.
 diagonally :: (List1 x -> List1 x -> y) -> List1 x -> Maybe (List1 y)
 diagonally f xs =
   catMaybes $
@@ -590,10 +595,12 @@ diagonally f xs =
 diagonals :: List1 x -> [(List1 x, List1 x)]
 diagonals = unList1 . diagonally (,)
 
--- > insertions x (a : b : cs)
--- >   == (x : a : b : cs)
--- >    : (a : x : b : cs)
--- >    : (a : b : x : cs) ...
+-- | Insert an element before each member of a 'List1'.
+--
+-- > insertions x (a : b : c : ...)
+-- >   == (x : a : b : c : ...)
+-- >    : (a : x : b : c : ...)
+-- >    : (a : b : x : c : ...) ...
 insertions :: x -> List1 x -> List1 (List1 x)
 insertions x = fix \rec ly@(y :? ys) ->
   (x :|| ly) :? (fmap (y :||) . rec <$> ys)
@@ -601,6 +608,7 @@ insertions x = fix \rec ly@(y :? ys) ->
 compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
 
+-- |
 -- >>> zipWithTruncate (,) [1, 2, 3] [10, 20, 30, 40, 50]
 -- ([(1,10),(2,20),(3,30)],There [40,50])
 zipWithTruncate :: (a -> b -> c) -> [a] -> [b] -> ([c], Wedge [a] [b])
