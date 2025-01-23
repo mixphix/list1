@@ -6,6 +6,8 @@
 * `consecutiveSubsequences :: List1 x -> List1 (List1 x)`
 * fix `accuml`
 * relax constraints of `mininumOn` and `maximumOn` to only the target requiring `Ord`
+* generalize `ifList1` to an arbitrary `Alternative`
+* generalize `whenList1` to `Applicative` instead of `Monad`
 
 ## 0.0.3 -- 2024-12-27
 

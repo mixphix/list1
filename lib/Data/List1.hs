@@ -109,8 +109,8 @@ module Data.List1 (
   zipWithTruncate1,
 ) where
 
-import Control.Applicative (Applicative (pure))
-import Control.Monad (Monad, ap, guard, join, liftM2, (<=<), (=<<), (>>=))
+import Control.Applicative (Alternative (empty), Applicative (pure))
+import Control.Monad (ap, guard, join, liftM2, (<=<), (=<<), (>>=))
 import Control.Monad.Fix (fix)
 import Data.Bifunctor (Bifunctor (first), bimap)
 import Data.Bits ((.&.))
@@ -218,11 +218,11 @@ asList :: (HasCallStack) => ([x] -> [x]) -> List1 x -> List1 x
 asList f xs = has01 (f (toList xs)) (error "Data.List1.asList: list got shortened") id
 
 -- | Apply a 'List1' function if the list is not empty.
-ifList1 :: [x] -> (List1 x -> y) -> Maybe y
-ifList1 xs = has01 xs Nothing . (Just .)
+ifList1 :: (Alternative m) => [x] -> (List1 x -> y) -> m y
+ifList1 xs = has01 xs empty . (pure .)
 
 -- | Run an action taking a 'List1' if the list is not empty.
-whenList1 :: (Monad m) => [x] -> (List1 x -> m ()) -> m ()
+whenList1 :: (Applicative m) => [x] -> (List1 x -> m ()) -> m ()
 whenList1 = (`has01` pure ())
 
 -- |
