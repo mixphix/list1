@@ -349,208 +349,274 @@ unzip = fix \rec -> \case
   Sole (x, y) -> (Sole x, Sole y)
   (x, y) :|| xys -> case rec xys of (xs, ys) -> (x :|| xs, y :|| ys)
 
+-- | Traverse a 'List1' with an accumulating parameter from left to right.
 accuml :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accuml (+) = fix \rec a0 -> \case
   Sole x -> Sole <$> (a0 + x)
   x :|| xs -> case a0 + x of (a, y) -> (y :||) <$> rec a xs
 
+-- | Traverse a 'List1' with an accumulating parameter from right to left.
 accumr :: (a -> x -> (a, y)) -> a -> List1 x -> (a, List1 y)
 accumr (+) a0 = fix \rec -> \case
   Sole x -> Sole <$> (a0 + x)
   x :|| xs -> case rec xs of (a, ys) -> (a + x) <&> (:|| ys)
 
+-- | 'scanl' is similar to 'foldl', but returns a 'List1' of successive reduced values from the left.
 scanl :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl (+) = fix \rec y zs ->
   y :? ifList1 zs \(x :| xs) -> rec (y + x) xs
 
+-- | Strict version of 'scanl'.
 scanl' :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl' (+) = fix \rec !y zs ->
   y :? ifList1 zs \(x :| xs) -> rec (y + x) xs
 
+-- | A variant of 'scanl' that has no starting value argument and works on a 'List1'.
 scanl1 :: (x -> x -> x) -> List1 x -> List1 x
 scanl1 f (x :| xs) = scanl f x xs
 
+-- | Strict version of 'scanl1'.
 scanl1' :: (x -> x -> x) -> List1 x -> List1 x
 scanl1' f (x :| xs) = scanl' f x xs
 
+-- | 'scanr' is the right-to-left dual of 'scanl'. Note that the parameters of the accumulating function are also reversed.
 scanr :: (x -> y -> y) -> y -> [x] -> List1 y
 scanr (+) = fix \rec y zs ->
   y :? ifList1 zs \(x :| xs) -> rec (x + y) xs
 
+-- | A variant of 'scanr' with no starting value argument and works on a 'List1'.
 scanr1 :: (x -> x -> x) -> List1 x -> List1 x
 scanr1 f (x :| xs) = scanr f x xs
 
+-- | Build a 'List1' from a generating function and seed value.
 unfoldr :: (x -> (y, Maybe x)) -> x -> List1 y
 unfoldr f x = case f x of (y, mx) -> y :? fmap (unfoldr f) mx
 
+-- | A version of 'map' that can eliminate (possibly all) values from a 'List1'.
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
 mapMaybe f = fix \rec (x :? xs) -> maybe id (\fx -> Just . (fx :?)) (f x) (rec =<< xs)
 
+-- | Returns a list of all (possibly no) 'Just' values in a 'List1'.
 catMaybes :: List1 (Maybe x) -> Maybe (List1 x)
 catMaybes = mapMaybe id
 
+-- | Take the first (possibly no) elements of a 'List1'.
 take :: Int -> List1 x -> Maybe (List1 x)
 take = fix \rec n (x :? xs) -> guard (n > 0) $> (x :? (rec (pred n) =<< xs))
 
+-- | Get rid of the first (possibly all) elements of a 'List1'.
 drop :: Int -> List1 x -> Maybe (List1 x)
 drop = fix \rec n (x :? xs) -> if n <= 0 then Just (x :? xs) else rec (pred n) =<< xs
 
+-- | Keep the longest prefix of elements of a 'List1' that satisfy a predicate.
 takeWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 takeWhile p = fix \rec (x :? xs) -> guard (p x) $> x :? (rec =<< xs)
 
+-- | Drop the longest prefix of elements of a 'List1' that satisfy a predicate.
 dropWhile :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 dropWhile p = fix \rec (x :? xs) -> if p x then rec =<< xs else Just (x :? xs)
 
+-- | Remove the first occurrence of the given element from a 'List1'.
 delete :: (Eq x) => x -> List1 x -> Maybe (List1 x)
 delete = deleteBy (==)
 
+-- | Remove an element from a 'List1' according to a supplied equality test.
 deleteBy :: (x -> x -> Bool) -> x -> List1 x -> Maybe (List1 x)
 deleteBy eq y = fix \rec (x :? xs) -> if eq x y then xs else Just (x :? (rec =<< xs))
 
+-- | Remove all of the elements of the second argument from the first argument.
 (\\) :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 xs \\ os = filter (not . (`elem` os)) xs
 
+-- | Keep only (possibly no) elements satisfying a predicate.
 filter :: (x -> Bool) -> List1 x -> Maybe (List1 x)
 filter p = fix \rec (x :? xs) -> (if p x then Just . (x :?) else id) (rec =<< xs)
 
+-- | The prefix and suffix of a 'List1' where the elements of the prefix satisfy the predicate.
 span :: (x -> Bool) -> List1 x -> ([x], [x])
 span p = List.span p . toList
 
+-- | The prefix and suffix of a 'List1' where the elements of the prefix /do not/ satisfy the predicate.
 break :: (x -> Bool) -> List1 x -> ([x], [x])
 break p = List.break p . toList
 
+-- | The elements of a 'List1' that do and do not satisfy the predicate, in order.
 partition :: (x -> Bool) -> List1 x -> ([x], [x])
 partition p = List.partition p . toList
 
+-- | Split a 'List1' at the given index.
 splitAt :: Int -> List1 x -> ([x], [x])
 splitAt n xs = (unList1 (take n xs), unList1 (drop n xs))
 
+-- | Attach the index to each element of a 'List1'.
 index :: (Integral n) => List1 x -> List1 (n, x)
 index = zip (iterated succ 0)
 
+-- | Whether the given element is not in the 'List1'.
 notElem :: (Eq x) => x -> List1 x -> Bool
 notElem = (not .) . elem
 
+-- | Whether the given element is found in the 'List1'.
 elem :: (Eq x) => x -> List1 x -> Bool
 elem = (isJust .) . elemIndex
 
+-- | The first index of the element, if it is found, within the 'List1'.
 elemIndex :: (Eq x) => x -> List1 x -> Maybe Int
 elemIndex = findIndex . (==)
 
+-- | All the indices of the element, if it is found, within the 'List1'.
 elemIndices :: (Eq x) => x -> List1 x -> Maybe (List1 Int)
 elemIndices = findIndices . (==)
 
+-- | The first element, if any, to satisfy a predicate.
 find :: (x -> Bool) -> List1 x -> Maybe x
 find p = fmap head . filter p
 
+-- | The index of the first element, if any, to satisfy a predicate.
 findIndex :: (x -> Bool) -> List1 x -> Maybe Int
 findIndex p = fmap head . findIndices p
 
+-- | All of the positions of the elements satisfying a predicate.
 findIndices :: (x -> Bool) -> List1 x -> Maybe (List1 Int)
 findIndices p xs = flip mapMaybe (index xs) \(i, x) -> guard (p x) $> i
 
+-- | The element at a given index.
 (!?) :: List1 x -> Int -> Maybe x
 (x :? xs) !? n
   | n < 0 = Nothing
   | n == 0 = Just x
   | otherwise = xs >>= (!? pred n)
 
+-- | Given a 'List1' of pairs, find the second coordinate of the first element matching in the first coordinate.
 lookup :: (Eq x) => x -> List1 (x, y) -> Maybe y
 lookup x = fmap snd . find ((x ==) . fst)
 
+-- | Sort a 'List1'.
 sort :: (Ord x) => List1 x -> List1 x
 sort = asList List.sort
 
+-- | Sort a 'List1' using the projection.
 sortOn :: (Ord y) => (x -> y) -> List1 x -> List1 x
 sortOn = asList . List.sortOn
 
+-- | Sort a 'List1' using an explicit comparison.
 sortBy :: (x -> x -> Ordering) -> List1 x -> List1 x
 sortBy = asList . List.sortBy
 
+-- | Group the elements of a 'List1' by equality.
 group :: (Eq x) => List1 x -> List1 (List1 x)
 group = groupBy (==)
 
+-- | Group the elements of a 'List1' by equality on a projection.
 groupOn :: (Eq y) => (x -> y) -> List1 x -> List1 (List1 x)
 groupOn f = groupBy (on (==) f)
 
+-- | Group the elements of a 'List1' with an explicit equality test.
 groupBy :: (x -> x -> Bool) -> List1 x -> List1 (List1 x)
 groupBy eq = fix \rec (x :| lx) -> case List.span (eq x) lx of
   (xs, ys) -> (x :| xs) :? ifList1 ys rec
 
+-- | Find the (possibly no) elements that are in both 'List1's.
 intersect :: (Eq x) => List1 x -> List1 x -> Maybe (List1 x)
 intersect = intersectBy (==)
 
+-- | Find the (possibly no) elements that are found in both 'List1's using a projection.
 intersectOn :: (Eq y) => (x -> y) -> List1 x -> List1 x -> Maybe (List1 x)
 intersectOn f = intersectBy (on (==) f)
 
+-- | Find the (possibly no) elements in the first 'List1' that match any element of the second 'List1' using an explicit equality test.
 intersectBy :: (x -> y -> Bool) -> List1 x -> List1 y -> Maybe (List1 x)
 intersectBy eq xs ys = flip mapMaybe xs \x -> guard (Fold.any (eq x) ys) $> x
 
+-- | Combine two 'List1's, keeping only those elements from the second 'List1' that are not already in the first.
 union :: (Eq x) => List1 x -> List1 x -> List1 x
 union = unionBy (==)
 
+-- | Similar to 'union' but using equality on a projection.
 unionOn :: (Eq y) => (x -> y) -> List1 x -> List1 x -> List1 x
 unionOn f = unionBy (on (==) f)
 
+-- | Similar to 'union' but with an explicit equality test.
 unionBy :: (x -> x -> Bool) -> List1 x -> List1 x -> List1 x
 unionBy eq xs ys =
   xs <> Fold.foldr ((fromJust .) . deleteBy eq) (nubBy eq ys) (toList xs)
 
+-- | Keep only one copy of each element.
 nub :: (Eq x) => List1 x -> List1 x
 nub = nubBy (==)
 
+-- | Keep only one copy of each element whose projections match.
 nubOn :: (Eq y) => (x -> y) -> List1 x -> List1 x
 nubOn f = nubBy (on (==) f)
 
+-- | Keep only one copy of each element whose projections match the explicit equality test.
 nubBy :: (x -> x -> Bool) -> List1 x -> List1 x
 nubBy eq (x :| xs) = x :| List.nubBy eq (List.filter (not . eq x) xs)
 
+-- | Find the maximum of a 'List1'.
 maximum :: (Ord x) => List1 x -> x
 maximum = Fold.maximum
 
+-- | Find the maximum of a projection function.
 maximumOf :: (Ord y) => (x -> y) -> List1 x -> y
 maximumOf f = maximum . fmap f
 
+-- | Find the element with maximal projection.
 maximumOn :: (Ord y) => (x -> y) -> List1 x -> x
 maximumOn f = maximumBy (comparing f)
 
+-- | Find the maximum using an explicit comparison function.
 maximumBy :: (x -> x -> Ordering) -> List1 x -> x
 maximumBy = Fold.maximumBy
 
+-- | Find the minimum of a 'List1'.
 minimum :: (Ord x) => List1 x -> x
 minimum = Fold.minimum
 
+-- | Find the minimum of a projection function.
 minimumOf :: (Ord y) => (x -> y) -> List1 x -> y
 minimumOf f = minimum . fmap f
 
+-- | Find the element with minimal projection.
 minimumOn :: (Ord y) => (x -> y) -> List1 x -> x
 minimumOn f = minimumBy (comparing f)
 
+-- | Find the minimum using an explicit comparison function.
 minimumBy :: (x -> x -> Ordering) -> List1 x -> x
 minimumBy = Fold.minimumBy
 
+-- | Apply a function repeatedly to a starting value. The first element is the starting value.
 iterate :: (x -> x) -> x -> List1 x
 iterate f = fix \rec x -> x :|| rec (f x)
 
+-- | Apply a function strictly to a starting value. The first element is the starting value.
 iterated :: (x -> x) -> x -> List1 x
 iterated f = fix \rec !x -> x :|| rec (f x)
 
+-- | The infinite 'List1' consisting of a single value.
 repeat :: x -> List1 x
 repeat = fix (ap (:||))
 
+-- | The 'List1' of given length consisting only of the given value.
 replicate :: Int -> x -> List1 x
 replicate n x = case n of
   _ | n <= 0 -> error "Data.List1.replicate: argument must be positive"
   1 -> Sole x
   _ -> x :|| replicate (pred n) x
 
+-- | The infinite 'List1' created by repeating the elements of the given 'List1'.
 cycle :: List1 x -> List1 x
 cycle = fix (ap (<>))
 
--- | > intersperse y [a, b, c] == [a, y, b, y, c]
+-- | Place an element between all other elements in a 'List1'.
+--
+-- > intersperse 'y' ('a' :|| 'b' :|| Sole 'c') == ('a' :|| 'y' :|| 'b' :|| 'y' :|| Sole 'c')
 intersperse :: x -> List1 x -> List1 x
 intersperse y = fix \rec (x :? xs) -> x :? fmap ((y :||) . rec) xs
 
+-- | Squash a 'List1' of 'List1's together with the given argument in between each 'List1'.
+--
+-- > intercalate (1 :|| Sole 1) (Sole 2 :|| Sole 3 :|| Sole (Sole 4)) == (2 :|| 1 :|| 1 :|| 3 :|| 1 :|| 1 :|| Sole 4)
 intercalate :: List1 x -> List1 (List1 x) -> List1 x
 intercalate = (join .) . intersperse
 
@@ -597,10 +663,10 @@ diagonals = unList1 . diagonally (,)
 
 -- | Insert an element before each member of a 'List1'.
 --
--- > insertions x (a : b : c : ...)
--- >   == (x : a : b : c : ...)
--- >    : (a : x : b : c : ...)
--- >    : (a : b : x : c : ...) ...
+-- > insertions x (a :|| b :|| c :|| ...)
+-- >     == (x :|| a :|| b :|| c :|| ...)
+-- >    :|| (a :|| x :|| b :|| c :|| ...)
+-- >    :|| (a :|| b :|| x :|| c :|| ...) ...
 insertions :: x -> List1 x -> List1 (List1 x)
 insertions x = fix \rec ly@(y :? ys) ->
   (x :|| ly) :? (fmap (y :||) . rec <$> ys)
@@ -608,7 +674,8 @@ insertions x = fix \rec ly@(y :? ys) ->
 compareLength :: List1 x -> List1 y -> Ordering
 compareLength xs ys = compare (void xs) (void ys)
 
--- |
+-- | Zip two lists with the provided function without deleting the tail of the longer list.
+--
 -- >>> zipWithTruncate (,) [1, 2, 3] [10, 20, 30, 40, 50]
 -- ([(1,10),(2,20),(3,30)],There [40,50])
 zipWithTruncate :: (a -> b -> c) -> [a] -> [b] -> ([c], Wedge [a] [b])
@@ -618,6 +685,7 @@ zipWithTruncate f as bs =
     (bimap toList toList)
     (zipWithTruncate' f (list1 as) (list1 bs))
 
+-- | The workhorse of 'zipWithTruncate' and 'zipWithTruncate1'.
 zipWithTruncate' ::
   (a -> b -> c) ->
   Maybe (List1 a) ->
@@ -631,6 +699,7 @@ zipWithTruncate' f = fix \rec -> \cases
     let (__, w) = rec (list1 as) (list1 bs)
      in (Just (f a b :? __), w)
 
+-- | Zip two 'List1's with the provided function without deleting the tail of the longer 'List1'.
 zipWithTruncate1 ::
   (a -> b -> c) ->
   List1 a ->
