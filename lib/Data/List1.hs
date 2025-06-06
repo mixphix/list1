@@ -14,6 +14,7 @@ module Data.List1 (
   onList,
   asList,
   ifList1,
+  withList1,
   whenList1,
   has01,
   has1Plus,
@@ -49,6 +50,7 @@ module Data.List1 (
   findIndices,
   (!?),
   lookup,
+  map,
   foldMap1,
   mapMaybe,
   catMaybes,
@@ -103,7 +105,6 @@ module Data.List1 (
   diagonally,
   diagonals,
   insertions,
-  compareLength,
   zipWithTruncate,
   zipWithTruncate',
   zipWithTruncate1,
@@ -119,7 +120,7 @@ import Data.Eq (Eq (..))
 import Data.Foldable qualified as Fold
 import Data.Foldable1 (Foldable1 (foldMap1))
 import Data.Function (const, flip, id, on, ($), (.))
-import Data.Functor (fmap, void, ($>), (<$>), (<&>))
+import Data.Functor (fmap, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -220,6 +221,10 @@ asList f xs = has01 (f (toList xs)) (error "Data.List1.asList: list got shortene
 -- | Apply a 'List1' function if the list is not empty.
 ifList1 :: (Alternative m) => [x] -> (List1 x -> y) -> m y
 ifList1 xs = has01 xs empty . (pure .)
+
+-- | Flipped version of 'has01', consistent with other libraries' @withNonEmpty@.
+withList1 :: y -> (List1 x -> y) -> [x] -> y
+withList1 y f xs = has01 xs y f
 
 -- | Run an action taking a 'List1' if the list is not empty.
 whenList1 :: (Applicative m) => [x] -> (List1 x -> m ()) -> m ()
@@ -391,6 +396,12 @@ scanr1 f (x :| xs) = scanr f x xs
 -- | Build a 'List1' from a generating function and seed value.
 unfoldr :: (x -> (y, Maybe x)) -> x -> List1 y
 unfoldr f x = case f x of (y, mx) -> y :? fmap (unfoldr f) mx
+
+-- | Apply a function to every element of a 'List1'.
+map :: (x -> y) -> List1 x -> List1 y
+map f = \case
+  Sole x -> Sole (f x)
+  x :|| xs -> f x :|| map f xs
 
 -- | A version of 'map' that can eliminate (possibly all) values from a 'List1'.
 mapMaybe :: (x -> Maybe y) -> List1 x -> Maybe (List1 y)
@@ -670,9 +681,6 @@ diagonals = unList1 . diagonally (,)
 insertions :: x -> List1 x -> List1 (List1 x)
 insertions x = fix \rec ly@(y :? ys) ->
   (x :|| ly) :? (fmap (y :||) . rec <$> ys)
-
-compareLength :: List1 x -> List1 y -> Ordering
-compareLength xs ys = compare (void xs) (void ys)
 
 -- | Zip two lists with the provided function without deleting the tail of the longer list.
 --
