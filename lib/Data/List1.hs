@@ -149,7 +149,6 @@ type List1 = NonEmpty
 --     , Ord
 --     , Show
 --     , Read
---     , Typeable
 --     , Data
 --     , Generic
 --     , Generic1

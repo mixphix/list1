@@ -1,6 +1,6 @@
 # Revision history for list1
 
-# Unreleased
+## 0.0.3
 
 * add `map` and `withList1` for completeness
 * `windows :: Int -> List1 x -> Maybe (List1 (List1 x))`
@@ -11,9 +11,6 @@
 * generalize `whenList1` to `Applicative` instead of `Monad`
 * add haddocks
 * remove `compareLength`
-
-## 0.0.3 -- 2024-12-27
-
 * change type of `lookup` to match `Data.List`
 * localize definition of `unfoldr`
 * reverse `inits` and `tails` in `diagonally`
