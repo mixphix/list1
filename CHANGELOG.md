@@ -1,6 +1,6 @@
 # Revision history for list1
 
-## 0.0.3
+## 0.1.0 -- 2025-06-10
 
 * add `map` and `withList1` for completeness
 * `windows :: Int -> List1 x -> Maybe (List1 (List1 x))`

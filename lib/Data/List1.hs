@@ -369,7 +369,7 @@ accumr (+) a0 = fix \rec -> \case
   Sole x -> Sole <$> (a0 + x)
   x :|| xs -> case rec xs of (a, ys) -> (a + x) <&> (:|| ys)
 
--- | 'scanl' is similar to 'foldl', but returns a 'List1' of successive reduced values from the left.
+-- | 'scanl' is similar to 'Fold.foldl', but returns a 'List1' of successive reduced values from the left.
 scanl :: (y -> x -> y) -> y -> [x] -> List1 y
 scanl (+) = fix \rec y zs ->
   y :? ifList1 zs \(x :| xs) -> rec (y + x) xs
