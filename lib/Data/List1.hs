@@ -1,3 +1,8 @@
+-- |
+-- Module: Data.List1
+-- Description: Helpers for working with NonEmpty lists.
+-- Copyright: (c) Melanie Phoenix Brown, 2023-2025
+-- Maintainer: brown.m@proton.me
 module Data.List1 (
   List1 {- ((:|)) -},
   pattern Sole,
@@ -105,9 +110,9 @@ module Data.List1 (
   diagonally,
   diagonals,
   insertions,
-  zipWithTruncate,
-  zipWithTruncate',
-  zipWithTruncate1,
+  -- zipWithTruncate,
+  -- zipWithTruncate',
+  -- zipWithTruncate1,
 ) where
 
 import Control.Applicative (Alternative (empty), Applicative (pure))
@@ -120,7 +125,7 @@ import Data.Eq (Eq (..))
 import Data.Foldable qualified as Fold
 import Data.Foldable1 (Foldable1 (foldMap1))
 import Data.Function (const, flip, id, on, ($), (.))
-import Data.Functor (fmap, ($>), (<$>), (<&>))
+import Data.Functor (Functor, fmap, ($>), (<$>), (<&>))
 import Data.Int (Int)
 import Data.List qualified as List
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -128,7 +133,6 @@ import Data.Maybe (Maybe (..), fromJust, fromMaybe, isJust, maybe)
 import Data.Ord (Ord (..), Ordering (..), comparing)
 import Data.Semigroup (Semigroup ((<>)))
 import Data.Tuple (fst, snd)
-import Data.Wedge (Wedge (..))
 import Data.Word (Word)
 import GHC.Enum (Enum (pred, succ))
 import GHC.Err (error)
@@ -681,16 +685,25 @@ insertions :: x -> List1 x -> List1 (List1 x)
 insertions x = fix \rec ly@(y :? ys) ->
   (x :|| ly) :? (fmap (y :||) . rec <$> ys)
 
--- | Zip two lists with the provided function without deleting the tail of the longer list.
---
--- >>> zipWithTruncate (,) [1, 2, 3] [10, 20, 30, 40, 50]
--- ([(1,10),(2,20),(3,30)],There [40,50])
-zipWithTruncate :: (a -> b -> c) -> [a] -> [b] -> ([c], Wedge [a] [b])
-zipWithTruncate f as bs =
-  bimap
-    (maybe [] toList)
-    (bimap toList toList)
-    (zipWithTruncate' f (list1 as) (list1 bs))
+data Wedge x y = Nowhere | Here x | There y deriving (Functor)
+
+instance Bifunctor Wedge where
+  bimap :: (x -> x') -> (y -> y') -> Wedge x y -> Wedge x' y'
+  bimap f g = \case
+    Nowhere -> Nowhere
+    Here x -> Here (f x)
+    There y -> There (g y)
+
+-- -- | Zip two lists with the provided function without deleting the tail of the longer list.
+-- --
+-- -- >>> zipWithTruncate (,) [1, 2, 3] [10, 20, 30, 40, 50]
+-- -- ([(1,10),(2,20),(3,30)],There [40,50])
+-- zipWithTruncate :: (a -> b -> c) -> [a] -> [b] -> ([c], Wedge [a] [b])
+-- zipWithTruncate f as bs =
+--   bimap
+--     (maybe [] toList)
+--     (bimap toList toList)
+--     (zipWithTruncate' f (list1 as) (list1 bs))
 
 -- | The workhorse of 'zipWithTruncate' and 'zipWithTruncate1'.
 zipWithTruncate' ::

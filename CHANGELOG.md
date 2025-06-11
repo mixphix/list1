@@ -19,9 +19,9 @@
 * fix `takeWhile`
 * add `unsnoc`
 * new function `has1Plus` extending `has01`
-* rename `truncate` family to `zipWithTruncate`
 * change type of `diagonals`
 * change `(<&)` and `(&>)` to `(<|)` and `(|>)` respectively
+* remove dependency on `smash`
 
 ## 0.0.2 -- 2024-08-10
 

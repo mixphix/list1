@@ -3,7 +3,7 @@ name:            list1
 version:         0.0.3
 license:         BSD-3-Clause
 license-file:    LICENSE
-author:          Melanie Phoenix
+author:          Melanie Phoenix Brown
 maintainer:      brown.m@proton.me
 category:        Data
 build-type:      Simple
@@ -16,19 +16,11 @@ library
   default-language:   GHC2021
   default-extensions:
     BlockArguments
-    DataKinds
-    DerivingStrategies
     LambdaCase
-    MultiWayIf
-    OverloadedStrings
     PatternSynonyms
-    QuasiQuotes
-    RecordWildCards
-    TypeFamilies
     ViewPatterns
 
   hs-source-dirs:     lib
   exposed-modules:    Data.List1
   build-depends:
     , base   >=4.15   && <5
-    , smash  >=0.1.4
