@@ -10,6 +10,8 @@ build-type:      Simple
 extra-doc-files: CHANGELOG.md
 synopsis:        Helpers for working with NonEmpty lists.
 description:     Please see the README at https://github.com/mixphix/list1
+tested-with:
+  GHC==9.14.1,
 
 library
   ghc-options:        -Wall
